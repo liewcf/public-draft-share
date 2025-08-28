@@ -6,9 +6,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class Core {
-    const META_TOKEN   = '_pds_token';
-    const META_EXPIRES = '_pds_expires';
-    const QUERY_VAR    = 'pds_token';
+    const META_TOKEN      = '_pds_token';
+    const META_EXPIRES    = '_pds_expires';
+    const QUERY_VAR       = 'pds_token';
+    const QUERY_VAR_POST  = 'pds_post';
 
     private static $instance;
 
@@ -24,17 +25,32 @@ class Core {
         add_filter( 'query_vars', [ $this, 'add_query_vars' ] );
         add_action( 'send_headers', [ $this, 'maybe_no_cache_headers' ] );
         add_action( 'template_redirect', [ $this, 'maybe_render_public_draft' ], 0 );
+        add_filter( 'redirect_canonical', [ $this, 'bypass_canonical_on_pds' ], 10, 2 );
         // If the author saves the post, purge any cached shared URL so updates show up.
         add_action( 'save_post', [ $this, 'purge_on_save' ], 10, 2 );
+        // One-time rewrite upgrade (support /pds/{post}/{token} structure)
+        add_action( 'admin_init', [ $this, 'maybe_upgrade_rewrites' ] );
     }
 
     public function add_query_vars( $vars ) {
         $vars[] = self::QUERY_VAR;
+        $vars[] = self::QUERY_VAR_POST;
         return $vars;
     }
 
     public function add_rewrite_rules() {
-        add_rewrite_rule( '^pds/([A-Za-z0-9\-_=]+)/?$', 'index.php?' . self::QUERY_VAR . '=$matches[1]', 'top' );
+        // New format: /pds/{post_id}/{token}
+        add_rewrite_rule(
+            '^pds/(\d+)/([A-Za-z0-9\-_=]+)/?$',
+            'index.php?' . self::QUERY_VAR_POST . '=$matches[1]&' . self::QUERY_VAR . '=$matches[2]',
+            'top'
+        );
+        // Back-compat: /pds/{token}
+        add_rewrite_rule(
+            '^pds/([A-Za-z0-9\-_=]+)/?$',
+            'index.php?' . self::QUERY_VAR . '=$matches[1]',
+            'top'
+        );
     }
 
     // ===== Token & Share URL =====
@@ -61,11 +77,15 @@ class Core {
         }
         // Append a version parameter based on last modified time to bust caches reliably.
         $ver = (int) get_post_modified_time( 'U', true, $post_id );
-        $url = home_url( '/pds/' . rawurlencode( $token ) );
+        $url = home_url( $this->build_share_path( $post_id, $token ) );
         if ( $ver ) {
             $url = add_query_arg( 'v', $ver, $url );
         }
         return $url;
+    }
+
+    private function build_share_path( int $post_id, string $token ) : string {
+        return '/pds/' . $post_id . '/' . rawurlencode( $token );
     }
 
     public function set_share_link( int $post_id, int $expires_ts = 0 ) : string {
@@ -99,7 +119,22 @@ class Core {
             return;
         }
 
-        $post = $this->find_post_by_token( sanitize_text_field( (string) $token ) );
+        $post_id_from_url = absint( get_query_var( self::QUERY_VAR_POST ) );
+        $post = null;
+        $token = sanitize_text_field( (string) $token );
+        if ( $post_id_from_url ) {
+            $candidate = get_post( $post_id_from_url );
+            if ( $candidate ) {
+                $stored = (string) get_post_meta( $candidate->ID, self::META_TOKEN, true );
+                if ( hash_equals( (string) $stored, $token ) ) {
+                    $post = $candidate; // exact match token + id
+                }
+            }
+        }
+        if ( ! $post ) {
+            // Back-compat: token-only URL (older links)
+            $post = $this->find_post_by_token( $token );
+        }
 
         if ( ! $post ) {
             $this->render_error( 404, __( 'Invalid link.', 'public-draft-share' ) );
@@ -173,6 +208,13 @@ class Core {
         }
     }
 
+    public function bypass_canonical_on_pds( $redirect_url, $requested_url ) {
+        if ( get_query_var( self::QUERY_VAR ) ) {
+            return false;
+        }
+        return $redirect_url;
+    }
+
     private function send_strong_no_cache_headers() : void {
         nocache_headers();
         // Try to defeat aggressive reverse proxies / CDNs
@@ -230,11 +272,18 @@ class Core {
     }
 
     private function find_post_by_token( string $token ) : ?\WP_Post {
+        // Case-sensitive exact match using BINARY type to avoid collation surprises.
         $q = new \WP_Query( [
             'post_type'      => 'any',
             'post_status'    => [ 'draft', 'pending', 'future', 'private', 'publish' ],
-            'meta_key'       => self::META_TOKEN,
-            'meta_value'     => $token,
+            'meta_query'     => [
+                [
+                    'key'     => self::META_TOKEN,
+                    'value'   => $token,
+                    'compare' => '=',
+                    'type'    => 'BINARY',
+                ],
+            ],
             'posts_per_page' => 1,
             'no_found_rows'  => true,
             'fields'         => 'all',
@@ -244,5 +293,15 @@ class Core {
             return $q->posts[0];
         }
         return null;
+    }
+
+    public function maybe_upgrade_rewrites() : void {
+        $current = get_option( 'pds_rewrite_version', '1' );
+        $target  = '2';
+        if ( $current !== $target ) {
+            $this->add_rewrite_rules();
+            flush_rewrite_rules();
+            update_option( 'pds_rewrite_version', $target );
+        }
     }
 }
