@@ -35,15 +35,7 @@
       $('<p/>', { class: 'pds-expires', text: 'Expires: ' + (expiresHuman || 'Never') })
     );
     var $actions = $('<div/>', { class: 'pds-actions' });
-    var $select = $('<select/>', { class: 'pds-expiry', id: 'pds-expiry-dynamic' });
-    [1,3,7,14,30,0].forEach(function (d) {
-      var label = d ? (d + ' ' + (d === 1 ? 'day' : 'days')) : 'Never';
-      $select.append($('<option/>', { value: String(d), text: label }));
-    });
     $actions.append(
-      $('<label/>', { text: 'Expires in', for: 'pds-expiry-dynamic' }), ' ',
-      $select, ' ',
-      $('<button/>', { type: 'button', class: 'button pds-btn pds-regen', text: 'Regenerate' }), ' ',
       $('<button/>', { type: 'button', class: 'button button-link pds-btn pds-copy', text: 'Copy' }), ' ',
       $('<button/>', { type: 'button', class: 'button button-link-delete pds-btn pds-disable', text: 'Disable' })
     );
@@ -80,7 +72,7 @@
     var $box = closestMetaBox(this);
     var postId = $btn.data('post') || $('#post_ID').val();
     var days = parseInt(getWrap($box).find('.pds-expiry').val() || 14, 10);
-    setLoading($btn, $btn.hasClass('pds-regen') ? PDS.i18n.regenerating : PDS.i18n.creating);
+    setLoading($btn, PDS.i18n.creating);
     post('pds_generate', { post_id: postId, expiry_days: days })
       .done(function (res) {
         if (res && res.success) {

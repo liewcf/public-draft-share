@@ -94,14 +94,6 @@ class Admin {
             }
 
             echo '<div class="pds-actions">';
-            echo '<label for="pds-expiry-' . esc_attr( $post->ID ) . '">' . esc_html__( 'Expires in', 'public-draft-share' ) . '</label> ';
-            echo '<select id="pds-expiry-' . esc_attr( $post->ID ) . '" class="pds-expiry">';
-            foreach ( [ 1, 3, 7, 14, 30, 0 ] as $d ) {
-                $label = $d ? sprintf( _n( '%d day', '%d days', $d, 'public-draft-share' ), $d ) : __( 'Never', 'public-draft-share' );
-                echo '<option value="' . esc_attr( $d ) . '">' . esc_html( $label ) . '</option>';
-            }
-            echo '</select> ';
-            echo '<button type="button" class="button pds-btn pds-regen" data-post="' . esc_attr( $post->ID ) . '">' . esc_html__( 'Regenerate', 'public-draft-share' ) . '</button> ';
             echo '<button type="button" class="button button-link pds-btn pds-copy" data-post="' . esc_attr( $post->ID ) . '">' . esc_html__( 'Copy', 'public-draft-share' ) . '</button> ';
             echo '<button type="button" class="button button-link-delete pds-btn pds-disable" data-post="' . esc_attr( $post->ID ) . '">' . esc_html__( 'Disable', 'public-draft-share' ) . '</button>';
             echo '</div>';
