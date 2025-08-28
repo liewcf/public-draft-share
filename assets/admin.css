@@ -2,7 +2,7 @@
 
 #pds_meta .inside { overflow: visible; }
 
-#pds_meta .pds-box { max-width: 100%; }
+#pds_meta .pds-box { max-width: 100%; padding-bottom: 12px; }
 
 #pds_meta .pds-link-wrap input.pds-link { width: 100%; box-sizing: border-box; }
 
@@ -22,4 +22,4 @@
 #pds_meta .pds-actions .button { margin: 0; }
 
 #pds_meta .pds-desc, #pds_meta .pds-expires, #pds_meta .pds-head { margin: 8px 0; }
-
+#pds_meta .pds-actions { margin-top: 6px; }
