@@ -12,6 +12,8 @@ class Core {
     const QUERY_VAR_POST  = 'pds_post';
 
     private static $instance;
+    private $pds_ctx = null; // ['post_id'=>int, 'token'=>string]
+    private $pds_error = null; // 'invalid' | 'expired' | null
 
     public static function instance() : self {
         if ( null === self::$instance ) {
@@ -24,6 +26,10 @@ class Core {
         add_action( 'init', [ $this, 'add_rewrite_rules' ] );
         add_filter( 'query_vars', [ $this, 'add_query_vars' ] );
         add_action( 'send_headers', [ $this, 'maybe_no_cache_headers' ] );
+        add_action( 'parse_request', [ $this, 'detect_pds_request' ] );
+        add_action( 'pre_get_posts', [ $this, 'shape_main_query' ] );
+        add_filter( 'posts_pre_query', [ $this, 'short_circuit_posts' ], 10, 2 );
+        add_filter( 'user_has_cap', [ $this, 'grant_read_cap' ], 10, 4 );
         add_action( 'template_redirect', [ $this, 'maybe_render_public_draft' ], 0 );
         add_filter( 'redirect_canonical', [ $this, 'bypass_canonical_on_pds' ], 10, 2 );
         // If the author saves the post, purge any cached shared URL so updates show up.
@@ -39,16 +45,10 @@ class Core {
     }
 
     public function add_rewrite_rules() {
-        // New format: /pds/{post_id}/{token}
+        // Only support: /pds/{post_id}/{token}
         add_rewrite_rule(
             '^pds/(\d+)/([A-Za-z0-9\-_=]+)/?$',
             'index.php?' . self::QUERY_VAR_POST . '=$matches[1]&' . self::QUERY_VAR . '=$matches[2]',
-            'top'
-        );
-        // Back-compat: /pds/{token}
-        add_rewrite_rule(
-            '^pds/([A-Za-z0-9\-_=]+)/?$',
-            'index.php?' . self::QUERY_VAR . '=$matches[1]',
             'top'
         );
     }
@@ -114,41 +114,115 @@ class Core {
     // ===== Frontend handling =====
 
     public function maybe_render_public_draft() : void {
-        $token = get_query_var( self::QUERY_VAR );
-        if ( empty( $token ) ) {
+        // If we detected an error earlier, output a minimal error page.
+        if ( $this->pds_error ) {
+            $code = ( 'expired' === $this->pds_error ) ? 410 : 404;
+            $msg  = ( 'expired' === $this->pds_error ) ? __( 'This link has expired.', 'public-draft-share' ) : __( 'Invalid link.', 'public-draft-share' );
+            $this->render_error( $code, $msg );
+            exit;
+        }
+        // Otherwise, do nothing and allow the theme/template loader to render the main query.
+    }
+
+    // Detect and validate PDS requests early
+    public function detect_pds_request( \WP $wp ) : void {
+        $qv = $wp->query_vars;
+        if ( empty( $qv[ self::QUERY_VAR ] ) ) {
             return;
         }
-
-        $post_id_from_url = absint( get_query_var( self::QUERY_VAR_POST ) );
-        $post = null;
-        $token = sanitize_text_field( (string) $token );
-        if ( $post_id_from_url ) {
-            $candidate = get_post( $post_id_from_url );
-            if ( $candidate ) {
-                $stored = (string) get_post_meta( $candidate->ID, self::META_TOKEN, true );
-                if ( hash_equals( (string) $stored, $token ) ) {
-                    $post = $candidate; // exact match token + id
-                }
-            }
+        $token  = sanitize_text_field( (string) $qv[ self::QUERY_VAR ] );
+        $post_id = isset( $qv[ self::QUERY_VAR_POST ] ) ? absint( $qv[ self::QUERY_VAR_POST ] ) : 0;
+        if ( ! $post_id ) {
+            $this->pds_error = 'invalid';
+            return;
         }
+        $post = get_post( $post_id );
         if ( ! $post ) {
-            // Back-compat: token-only URL (older links)
-            $post = $this->find_post_by_token( $token );
+            $this->pds_error = 'invalid';
+            return;
         }
-
-        if ( ! $post ) {
-            $this->render_error( 404, __( 'Invalid link.', 'public-draft-share' ) );
-            exit;
+        $stored = (string) get_post_meta( $post_id, self::META_TOKEN, true );
+        if ( empty( $stored ) || ! hash_equals( (string) $stored, $token ) ) {
+            $this->pds_error = 'invalid';
+            return;
         }
-
-        $expires = (int) get_post_meta( $post->ID, self::META_EXPIRES, true );
+        $expires = (int) get_post_meta( $post_id, self::META_EXPIRES, true );
         if ( $expires && time() > $expires ) {
-            $this->render_error( 410, __( 'This link has expired.', 'public-draft-share' ) );
-            exit;
+            $this->pds_error = 'expired';
+            return;
         }
+        $this->pds_ctx = [ 'post_id' => $post_id, 'token' => $token ];
+    }
 
-        $this->render_public_draft( $post );
-        exit;
+    // Shape the main query to load the target post via the template loader
+    public function shape_main_query( \WP_Query $q ) : void {
+        if ( is_admin() || ! $q->is_main_query() ) {
+            return;
+        }
+        if ( ! $this->pds_ctx ) {
+            return;
+        }
+        $post_id = (int) $this->pds_ctx['post_id'];
+        $post    = get_post( $post_id );
+
+        // Shape variables for a single post view
+        $q->set( 'p', $post_id );
+        $q->set( 'post_type', 'any' );
+        $q->set( 'post_status', [ 'draft', 'pending', 'future', 'private', 'publish' ] );
+        $q->set( 'posts_per_page', 1 );
+        $q->set( 'ignore_sticky_posts', true );
+
+        // Clear archive/home/search contexts just in case
+        $q->is_home              = false;
+        $q->is_front_page        = false;
+        $q->is_archive           = false;
+        $q->is_post_type_archive = false;
+        $q->is_category          = false;
+        $q->is_tag               = false;
+        $q->is_tax               = false;
+        $q->is_author            = false;
+        $q->is_date              = false;
+        $q->is_search            = false;
+        $q->is_feed              = false;
+        $q->is_paged             = false;
+        $q->is_404               = false;
+
+        // Singular flags
+        $q->is_singular = true;
+        if ( $post && 'page' === $post->post_type ) {
+            $q->is_page   = true;
+            $q->is_single = false;
+        } else {
+            $q->is_single = true;
+            $q->is_page   = false;
+        }
+    }
+
+    // Guarantee the post is returned even if other filters interfere
+    public function short_circuit_posts( $posts, \WP_Query $q ) {
+        if ( is_admin() || ! $q->is_main_query() || ! $this->pds_ctx ) {
+            return $posts;
+        }
+        $post = get_post( $this->pds_ctx['post_id'] );
+        if ( $post instanceof \WP_Post ) {
+            // Ensure the query reports a single found post
+            $q->found_posts   = 1;
+            $q->max_num_pages = 1;
+            return [ $post ];
+        }
+        return $posts;
+    }
+
+    // Grant read permission for this specific post to anonymous visitors
+    public function grant_read_cap( $allcaps, $caps, $args, $user ) {
+        if ( ! $this->pds_ctx ) {
+            return $allcaps;
+        }
+        // $args: [0] requested cap, [1] user ID, [2] post_id
+        if ( isset( $args[0], $args[2] ) && 'read_post' === $args[0] && (int) $args[2] === (int) $this->pds_ctx['post_id'] ) {
+            $allcaps['read_post'] = true;
+        }
+        return $allcaps;
     }
 
     private function render_error( int $status, string $message ) : void {
@@ -205,6 +279,7 @@ class Core {
         $token = get_query_var( self::QUERY_VAR );
         if ( ! empty( $token ) ) {
             $this->send_strong_no_cache_headers();
+            header( 'X-Robots-Tag: noindex, nofollow', true );
         }
     }
 
@@ -305,7 +380,7 @@ class Core {
 
     public function maybe_upgrade_rewrites() : void {
         $current = get_option( 'pds_rewrite_version', '1' );
-        $target  = '2';
+        $target  = '3';
         if ( $current !== $target ) {
             $this->add_rewrite_rules();
             flush_rewrite_rules();
