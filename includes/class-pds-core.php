@@ -24,6 +24,8 @@ class Core {
         add_filter( 'query_vars', [ $this, 'add_query_vars' ] );
         add_action( 'send_headers', [ $this, 'maybe_no_cache_headers' ] );
         add_action( 'template_redirect', [ $this, 'maybe_render_public_draft' ], 0 );
+        // If the author saves the post, purge any cached shared URL so updates show up.
+        add_action( 'save_post', [ $this, 'purge_on_save' ], 10, 2 );
     }
 
     public function add_query_vars( $vars ) {
@@ -57,7 +59,13 @@ class Core {
         if ( $expires && time() > $expires ) {
             return null; // expired
         }
-        return home_url( '/pds/' . rawurlencode( $token ) );
+        // Append a version parameter based on last modified time to bust caches reliably.
+        $ver = (int) get_post_modified_time( 'U', true, $post_id );
+        $url = home_url( '/pds/' . rawurlencode( $token ) );
+        if ( $ver ) {
+            $url = add_query_arg( 'v', $ver, $url );
+        }
+        return $url;
     }
 
     public function set_share_link( int $post_id, int $expires_ts = 0 ) : string {
@@ -199,6 +207,25 @@ class Core {
                 $blog_id = function_exists( 'get_current_blog_id' ) ? get_current_blog_id() : 0;
                 @wp_cache_clear_cache( $blog_id ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
             }
+        }
+    }
+
+    public function purge_on_save( int $post_id, \WP_Post $post ) : void {
+        // Skip autosave/revision
+        if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+            return;
+        }
+        if ( wp_is_post_revision( $post_id ) ) {
+            return;
+        }
+        // Only for public post types (matches where meta box appears)
+        $pt_obj = get_post_type_object( $post->post_type );
+        if ( ! $pt_obj || empty( $pt_obj->public ) ) {
+            return;
+        }
+        $url = $this->get_share_url( $post_id );
+        if ( $url ) {
+            $this->purge_url_cache( $url );
         }
     }
 
