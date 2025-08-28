@@ -103,7 +103,7 @@ class Admin {
             echo '<select id="pds-expiry-' . esc_attr( $post->ID ) . '" class="pds-expiry">';
             foreach ( [ 1, 3, 7, 14, 30, 0 ] as $d ) {
                 $label = $d ? sprintf( _n( '%d day', '%d days', $d, 'public-draft-share' ), $d ) : __( 'Never', 'public-draft-share' );
-                $selected = ( 14 === $d ) ? ' selected' : '';
+                $selected = ( 7 === $d ) ? ' selected' : '';
                 echo '<option value="' . esc_attr( $d ) . '"' . $selected . '>' . esc_html( $label ) . '</option>';
             }
             echo '</select></p>';
@@ -119,7 +119,7 @@ class Admin {
         }
         check_admin_referer( 'pds_generate_' . $post_id );
 
-        $days  = isset( $_POST['expiry_days'] ) ? intval( $_POST['expiry_days'] ) : 14;
+        $days  = isset( $_POST['expiry_days'] ) ? intval( $_POST['expiry_days'] ) : 7;
         $exp   = $days > 0 ? ( time() + DAY_IN_SECONDS * $days ) : 0;
 
         Core::instance()->set_share_link( $post_id, $exp );
@@ -146,7 +146,7 @@ class Admin {
         check_ajax_referer( 'pds_ajax', 'nonce' );
 
         $post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
-        $days    = isset( $_POST['expiry_days'] ) ? intval( $_POST['expiry_days'] ) : 14;
+        $days    = isset( $_POST['expiry_days'] ) ? intval( $_POST['expiry_days'] ) : 7;
 
         if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
             wp_send_json_error( [ 'message' => __( 'Permission denied.', 'public-draft-share' ) ], 403 );

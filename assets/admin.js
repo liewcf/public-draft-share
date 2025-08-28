@@ -52,7 +52,7 @@
         [1,3,7,14,30,0].forEach(function (d) {
           var label = d ? (d + ' ' + (d === 1 ? 'day' : 'days')) : 'Never';
           var $opt = $('<option/>', { value: String(d), text: label });
-          if (d === 14) $opt.attr('selected', 'selected');
+          if (d === 7) $opt.attr('selected', 'selected');
           $s.append($opt);
         });
         return $s;
@@ -71,7 +71,7 @@
     var $btn = $(this);
     var $box = closestMetaBox(this);
     var postId = $btn.data('post') || $('#post_ID').val();
-    var days = parseInt(getWrap($box).find('.pds-expiry').val() || 14, 10);
+    var days = parseInt(getWrap($box).find('.pds-expiry').val() || 7, 10);
     setLoading($btn, PDS.i18n.creating);
     post('pds_generate', { post_id: postId, expiry_days: days })
       .done(function (res) {

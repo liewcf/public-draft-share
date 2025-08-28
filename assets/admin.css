@@ -2,7 +2,7 @@
 
 #pds_meta .inside { overflow: visible; }
 
-#pds_meta .pds-box { max-width: 100%; padding-bottom: 12px; }
+#pds_meta .pds-box { max-width: 100%; padding: 0 0 12px 12px; }
 
 #pds_meta .pds-link-wrap input.pds-link { width: 100%; box-sizing: border-box; }
 
