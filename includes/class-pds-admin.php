@@ -31,6 +31,15 @@ class Admin {
         if ( 'post.php' !== $hook && 'post-new.php' !== $hook ) {
             return;
         }
+        // Styles
+        wp_register_style(
+            'pds-admin-css',
+            PDS_PLUGIN_URL . 'assets/admin.css',
+            [],
+            PDS_VERSION
+        );
+        wp_enqueue_style( 'pds-admin-css' );
+
         wp_register_script(
             'pds-admin',
             PDS_PLUGIN_URL . 'assets/admin.js',
@@ -84,7 +93,7 @@ class Admin {
                 echo '<p class="pds-expires">' . esc_html__( 'Expires', 'public-draft-share' ) . ': ' . esc_html__( 'Never', 'public-draft-share' ) . '</p>';
             }
 
-            echo '<div class="pds-actions" style="display:flex;gap:6px;align-items:center;">';
+            echo '<div class="pds-actions">';
             echo '<label for="pds-expiry-' . esc_attr( $post->ID ) . '">' . esc_html__( 'Expires in', 'public-draft-share' ) . '</label> ';
             echo '<select id="pds-expiry-' . esc_attr( $post->ID ) . '" class="pds-expiry">';
             foreach ( [ 1, 3, 7, 14, 30, 0 ] as $d ) {

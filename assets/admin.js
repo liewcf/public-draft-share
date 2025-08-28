@@ -34,7 +34,7 @@
       ),
       $('<p/>', { class: 'pds-expires', text: 'Expires: ' + (expiresHuman || 'Never') })
     );
-    var $actions = $('<div/>', { class: 'pds-actions', style: 'display:flex;gap:6px;align-items:center;' });
+    var $actions = $('<div/>', { class: 'pds-actions' });
     var $select = $('<select/>', { class: 'pds-expiry', id: 'pds-expiry-dynamic' });
     [1,3,7,14,30,0].forEach(function (d) {
       var label = d ? (d + ' ' + (d === 1 ? 'day' : 'days')) : 'Never';

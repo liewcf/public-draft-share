@@ -1,0 +1,25 @@
+/* Public Draft Share – Admin UI tweaks for sidebar width */
+
+#pds_meta .inside { overflow: visible; }
+
+#pds_meta .pds-box { max-width: 100%; }
+
+#pds_meta .pds-link-wrap input.pds-link { width: 100%; box-sizing: border-box; }
+
+#pds_meta .pds-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;         /* allow controls to wrap in narrow sidebars */
+  gap: 6px 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#pds_meta .pds-actions label { flex: 0 0 100%; margin: 0; }
+
+#pds_meta .pds-actions .pds-expiry { min-width: 120px; }
+
+#pds_meta .pds-actions .button { margin: 0; }
+
+#pds_meta .pds-desc, #pds_meta .pds-expires, #pds_meta .pds-head { margin: 8px 0; }
+
