@@ -34,6 +34,8 @@ class Core {
         add_filter( 'redirect_canonical', [ $this, 'bypass_canonical_on_pds' ], 10, 2 );
         // If the author saves the post, purge any cached shared URL so updates show up.
         add_action( 'save_post', [ $this, 'purge_on_save' ], 10, 2 );
+        // Auto-expire link on first publish
+        add_action( 'transition_post_status', [ $this, 'auto_disable_on_publish' ], 10, 3 );
         // One-time rewrite upgrade (support /pds/{post}/{token} structure)
         add_action( 'admin_init', [ $this, 'maybe_upgrade_rewrites' ] );
     }
@@ -351,6 +353,27 @@ class Core {
         $url = $this->get_share_url( $post_id );
         if ( $url ) {
             $this->purge_url_cache( $url );
+        }
+    }
+
+    // Disable and purge on publish to avoid lingering public access after going live
+    public function auto_disable_on_publish( string $new_status, string $old_status, \WP_Post $post ) : void {
+        if ( 'publish' !== $new_status || 'publish' === $old_status ) {
+            return; // only on first transition to publish
+        }
+        // Allow site owners to opt-out
+        $enabled = apply_filters( 'pds_auto_expire_on_publish', true, $post );
+        if ( ! $enabled ) {
+            return;
+        }
+        // Only for public post types we support
+        $pt = get_post_type_object( $post->post_type );
+        if ( ! $pt || empty( $pt->public ) ) {
+            return;
+        }
+        $token = get_post_meta( $post->ID, self::META_TOKEN, true );
+        if ( $token ) {
+            $this->disable_share_link( $post->ID );
         }
     }
 

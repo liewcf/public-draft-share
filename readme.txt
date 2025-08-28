@@ -15,8 +15,9 @@ Create secure, shareable links for viewing draft posts and pages without logging
 Public Draft Share lets you generate a unique, unguessable URL to share a draft (or pending/future/private) post with anyone—no account required. You can set an optional expiry, revoke the link at any time, and the page is marked `noindex` to prevent search engines from indexing it.
 
 Features:
-* One‑click Create/Regenerate/Disable from the post editor
+* One‑click Create/Disable from the post editor
 * Optional expiry (1, 3, 7, 14, 30 days, or never)
+* Auto‑expires link when the post is published (with cache purge)
 * No login required for viewers
 * Noindex headers and meta to discourage indexing
 * Works with posts, pages, and public custom post types
@@ -45,4 +46,3 @@ All link tokens and expiry metadata are removed from the database.
 
 = 1.0.0 =
 * Initial release.
-
