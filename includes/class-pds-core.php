@@ -226,20 +226,28 @@ class Core {
     }
 
     private function purge_url_cache( string $url ) : void {
+        $urls = [ $url ];
+        // Also purge variant without query arguments in case cache ignores them
+        $urls[] = remove_query_arg( array_keys( wp_parse_args( wp_parse_url( $url, PHP_URL_QUERY ) ?: '' ) ), $url );
+        $urls = array_unique( array_filter( $urls ) );
         // WP Rocket
         if ( function_exists( 'rocket_clean_files' ) ) {
-            rocket_clean_files( [ $url ] );
+            rocket_clean_files( $urls );
         }
         // LiteSpeed Cache
         if ( function_exists( 'do_action' ) ) {
-            do_action( 'litespeed_purge_url', $url );
-            do_action( 'sg_cachepress_purge_url', $url );
-            do_action( 'w3tc_flush_url', $url );
-            do_action( 'kinsta-clear-cache-url', $url );
+            foreach ( $urls as $u ) {
+                do_action( 'litespeed_purge_url', $u );
+                do_action( 'sg_cachepress_purge_url', $u );
+                do_action( 'w3tc_flush_url', $u );
+                do_action( 'kinsta-clear-cache-url', $u );
+            }
         }
         // W3 Total Cache (direct)
         if ( function_exists( 'w3tc_flush_url' ) ) {
-            w3tc_flush_url( $url );
+            foreach ( $urls as $u ) {
+                w3tc_flush_url( $u );
+            }
         }
 
         // Optional: aggressively flush Super Cache if enabled by filter
