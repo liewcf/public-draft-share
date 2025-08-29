@@ -1,0 +1,14 @@
+# Build artifacts
+public-draft-share-*.zip
+
+# Local tools
+wp-cli.phar
+
+# Dependencies
+vendor/
+
+# OS/IDE
+.DS_Store
+.idea/
+.vscode/
+

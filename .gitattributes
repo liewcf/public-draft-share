@@ -1,0 +1,21 @@
+# Exclude development files from source exports (GitHub release ZIPs)
+/.github           export-ignore
+/.gitignore        export-ignore
+/.gitattributes    export-ignore
+/.editorconfig     export-ignore
+/AGENTS.md         export-ignore
+/composer.json     export-ignore
+/composer.lock     export-ignore
+/phpcs.xml.dist    export-ignore
+/assets/README.md  export-ignore
+/assets/banner-772x250.png export-ignore
+/assets/banner-1544x500.png export-ignore
+/assets/icon-128x128.png   export-ignore
+/assets/icon-256x256.png   export-ignore
+/vendor/                  export-ignore
+/wp-cli.phar              export-ignore
+/public-draft-share-*.zip export-ignore
+/tests/            export-ignore
+/node_modules/     export-ignore
+/package.json      export-ignore
+/package-lock.json export-ignore
