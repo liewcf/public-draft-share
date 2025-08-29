@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  phpcs:
+    name: PHPCS (WordPress Standards)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: [ '7.4', '8.0', '8.1', '8.2', '8.3' ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer
+      - name: Install dev tools
+        run: composer install --no-interaction --no-progress
+      - name: Lint (PHPCS)
+        run: composer lint
+
+  pot:
+    name: Generate POT (i18n)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install WP-CLI
+        run: |
+          curl -fsSL -o wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          php wp-cli.phar --version
+      - name: Make POT
+        run: php wp-cli.phar i18n make-pot . languages/public-draft-share.pot
+      - name: Fail if POT changed (update locally and commit)
+        run: |
+          if ! git diff --quiet -- languages/public-draft-share.pot; then
+            echo "languages/public-draft-share.pot is out of date. Run the i18n command and commit." >&2
+            exit 1
+          fi
+

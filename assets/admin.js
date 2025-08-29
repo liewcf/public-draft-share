@@ -66,7 +66,7 @@
     );
   }
 
-  $(document).on('click', '.pds-create, .pds-regen', function (e) {
+  $(document).on('click', '.pds-create', function (e) {
     e.preventDefault();
     var $btn = $(this);
     var $box = closestMetaBox(this);

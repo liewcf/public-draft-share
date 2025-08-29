@@ -1,0 +1,25 @@
+{
+  "name": "liewcf/public-draft-share",
+  "description": "Create secure, shareable links to view draft posts and pages without logging in.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=7.4"
+  },
+  "require-dev": {
+    "squizlabs/php_codesniffer": "^3.9",
+    "wp-coding-standards/wpcs": "^3.0",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0"
+  },
+  "scripts": {
+    "lint": "phpcs -s --standard=phpcs.xml.dist .",
+    "fix": "phpcbf --standard=phpcs.xml.dist ."
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  }
+}
+

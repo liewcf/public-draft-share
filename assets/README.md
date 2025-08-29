@@ -9,8 +9,8 @@ Included files
 - `icon-128x128.png` (1x)
 - `icon-256x256.png` (2x)
 
-Regenerate
-- Edit and run `php assets/generate-assets.php` to recreate placeholders.
+Customize
+- Replace these PNGs with your own designs using your preferred image editor.
 
 Submit to .org SVN
 1. In your plugin SVN checkout, place these PNGs in the top-level `assets/` directory (sibling to `trunk/`).
@@ -21,4 +21,3 @@ Design tips
 - Keep text large and legible; avoid tiny UI screenshots.
 - Safe area (banners): avoid the extreme edges; WordPress may crop on mobile.
 - Keep icons simple; high contrast works best at 128×128.
-
