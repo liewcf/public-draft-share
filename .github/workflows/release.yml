@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v1.0.1)'
+        required: true
+
+jobs:
+  build_and_release:
+    name: Build ZIP and Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine tag/ref
+        id: ref
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="$GITHUB_REF_NAME"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tag
+        run: |
+          git fetch --tags --force
+          git checkout "tags/${{ steps.ref.outputs.tag }}" --detach
+
+      - name: Set version
+        id: meta
+        run: |
+          VERSION="${{ steps.ref.outputs.tag }}"
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Validate plugin header version matches tag
+        run: |
+          FILE_VERSION=$(awk -F': ' '/^ \* Version:/ {print $2; exit}' public-draft-share.php)
+          if [ "$FILE_VERSION" != "${{ steps.meta.outputs.version }}" ]; then
+            echo "Plugin header version ($FILE_VERSION) does not match tag (${{ steps.meta.outputs.version }})" >&2
+            exit 1
+          fi
+
+      - name: Build ZIP
+        id: build
+        run: |
+          ZIP="public-draft-share-${{ steps.meta.outputs.version }}.zip"
+          zip -r "$ZIP" . \
+            -x "*.git*" "*.zip" "vendor/**" \
+               ".github/**" "wp-cli.phar" \
+               "assets/banner-*.png" "assets/icon-*.png"
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: SHA256
+        id: shasum
+        run: |
+          SHA=$(sha256sum "${{ steps.build.outputs.zip }}" | cut -d' ' -f1)
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ref.outputs.tag }}
+          name: Public Draft Share ${{ steps.meta.outputs.version }}
+          files: ${{ steps.build.outputs.zip }}
+          draft: false
+          prerelease: false
+          body: |
+            Public Draft Share ${{ steps.meta.outputs.version }}
+
+            SHA256: `${{ steps.shasum.outputs.sha }}`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
