@@ -1,19 +1,119 @@
+# Copyright (C) 2025 Liew Cheon Fong
+# This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Public Draft Share 1.0.0\n"
-"Report-Msgid-Bugs-To: https://example.com\n"
-"POT-Creation-Date: 2025-08-28 00:00+0000\n"
+"Project-Id-Version: Public Draft Share 1.0.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/public-draft-share\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Codex CLI\n"
+"POT-Creation-Date: 2025-08-29T19:54:41+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: public-draft-share\n"
 
-#: includes/class-pds-admin.php
+#. Plugin Name of the plugin
+#: public-draft-share.php
+#: includes/class-pds-admin.php:99
 msgid "Public Draft Share"
 msgstr ""
 
-#: includes/class-pds-core.php
-msgid "Invalid link."
+#. Plugin URI of the plugin
+#: public-draft-share.php
+msgid "https://example.com/public-draft-share"
 msgstr ""
 
+#. Description of the plugin
+#: public-draft-share.php
+msgid "Create secure, shareable links to view draft posts and pages without logging in."
+msgstr ""
+
+#. Author of the plugin
+#: public-draft-share.php
+msgid "Liew Cheon Fong"
+msgstr ""
+
+#. Author URI of the plugin
+#: public-draft-share.php
+msgid "https://github.com/liewcf"
+msgstr ""
+
+#: includes/class-pds-admin.php:82
+msgid "Creating…"
+msgstr ""
+
+#: includes/class-pds-admin.php:83
+msgid "Link disabled."
+msgstr ""
+
+#: includes/class-pds-admin.php:84
+msgid "Something went wrong. Please try again."
+msgstr ""
+
+#: includes/class-pds-admin.php:85
+msgid "Copied!"
+msgstr ""
+
+#: includes/class-pds-admin.php:111
+#: includes/class-pds-admin.php:175
+msgid "This content is already published."
+msgstr ""
+
+#: includes/class-pds-admin.php:122
+msgid "Shareable link"
+msgstr ""
+
+#: includes/class-pds-admin.php:125
+#: includes/class-pds-admin.php:127
+msgid "Expires"
+msgstr ""
+
+#. translators: %d: number of days until the shared link expires.
+#: includes/class-pds-admin.php:127
+#: includes/class-pds-admin.php:140
+#: includes/class-pds-admin.php:184
+msgid "Never"
+msgstr ""
+
+#: includes/class-pds-admin.php:131
+msgid "Copy"
+msgstr ""
+
+#: includes/class-pds-admin.php:132
+msgid "Disable"
+msgstr ""
+
+#: includes/class-pds-admin.php:135
+msgid "Generate a secure link so anyone can view this draft without logging in."
+msgstr ""
+
+#: includes/class-pds-admin.php:136
+msgid "Expires in"
+msgstr ""
+
+#. translators: %d: number of days until the shared link expires.
+#: includes/class-pds-admin.php:140
+#, php-format
+msgid "%d day"
+msgid_plural "%d days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/class-pds-admin.php:149
+msgid "Create Link"
+msgstr ""
+
+#: includes/class-pds-admin.php:169
+#: includes/class-pds-admin.php:203
+msgid "Permission denied."
+msgstr ""
+
+#: includes/class-pds-core.php:198
+msgid "Invalid or expired link."
+msgstr ""
+
+#: includes/class-pds-core.php:353
+msgid "Ask the author for a new link."
+msgstr ""

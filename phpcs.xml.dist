@@ -5,13 +5,17 @@
   <rule ref="WordPress-Docs"/>
   <rule ref="WordPress-Extra"/>
 
+  <!-- Relaxations: keep existing file naming and allow short ternary operator. -->
+  <rule ref="WordPress.Files.FileName.InvalidClassFileName">
+    <severity>0</severity>
+  </rule>
+  <rule ref="Universal.Operators.DisallowShortTernary">
+    <severity>0</severity>
+  </rule>
+
   <file>public-draft-share.php</file>
   <file>includes</file>
-  <file>templates</file>
-
-  <!-- Exclusions for template echoing raw content (intentional). -->
-  <exclude-pattern>templates/public-draft.php</exclude-pattern>
+  <!-- templates/ removed; plugin defers rendering to theme. -->
 
   <config name="testVersion" value="7.4-"/>
 </ruleset>
-
