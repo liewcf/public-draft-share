@@ -3,6 +3,7 @@ public-draft-share-*.zip
 
 # Local tools
 wp-cli.phar
+.git-askpass.sh
 
 # Dependencies
 vendor/

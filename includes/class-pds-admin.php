@@ -69,17 +69,30 @@ class Admin {
 			PDS_VERSION,
 			true
 		);
+		$expiry_options = $this->get_expiry_options();
 		wp_localize_script(
 			'pds-admin',
 			'PDS',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'pds_ajax' ),
-				'i18n'    => array(
-					'creating' => __( 'Creating…', 'public-draft-share' ),
-					'disabled' => __( 'Link disabled.', 'public-draft-share' ),
-					'error'    => __( 'Something went wrong. Please try again.', 'public-draft-share' ),
-					'copied'   => __( 'Copied!', 'public-draft-share' ),
+				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+				'nonce'         => wp_create_nonce( 'pds_ajax' ),
+				'expiryOptions' => $expiry_options,
+				'defaultExpiry' => $this->get_default_expiry_days(),
+				'i18n'          => array(
+					'creating'      => __( 'Creating…', 'public-draft-share' ),
+					'disabled'      => __( 'Link disabled.', 'public-draft-share' ),
+					'error'         => __( 'Something went wrong. Please try again.', 'public-draft-share' ),
+					'copied'        => __( 'Copied!', 'public-draft-share' ),
+					'shareableLink' => __( 'Shareable link', 'public-draft-share' ),
+					'expires'       => __( 'Expires', 'public-draft-share' ),
+					'never'         => __( 'Never', 'public-draft-share' ),
+					'copy'          => __( 'Copy', 'public-draft-share' ),
+					'disable'       => __( 'Disable', 'public-draft-share' ),
+					'expiresIn'     => __( 'Expires in', 'public-draft-share' ),
+					'day'           => __( 'day', 'public-draft-share' ),
+					'days'          => __( 'days', 'public-draft-share' ),
+					'createLink'    => __( 'Create Link', 'public-draft-share' ),
+					'description'   => __( 'Generate a secure link so anyone can view this draft without logging in.', 'public-draft-share' ),
 				),
 			)
 		);
@@ -132,13 +145,15 @@ class Admin {
 			echo '<p class="pds-desc">' . esc_html__( 'Generate a secure link so anyone can view this draft without logging in.', 'public-draft-share' ) . '</p>';
 			echo '<p class="pds-create-wrap"><label for="pds-expiry-' . esc_attr( $post->ID ) . '">' . esc_html__( 'Expires in', 'public-draft-share' ) . ' </label>';
 			echo '<select id="pds-expiry-' . esc_attr( $post->ID ) . '" class="pds-expiry">';
-			foreach ( array( 1, 3, 7, 14, 30, 0 ) as $d ) {
+			$expiry_options = $this->get_expiry_options();
+			$default_days   = $this->get_default_expiry_days();
+			foreach ( $expiry_options as $d ) {
 				/* translators: %d: number of days until the shared link expires. */
 				$label = $d ? sprintf( _n( '%d day', '%d days', $d, 'public-draft-share' ), $d ) : __( 'Never', 'public-draft-share' );
 				printf(
 					'<option value="%1$s"%2$s>%3$s</option>',
 					esc_attr( (string) $d ),
-					selected( 7 === $d, true, false ),
+					selected( $default_days === $d, true, false ),
 					esc_html( $label )
 				);
 			}
@@ -156,13 +171,13 @@ class Admin {
 		check_ajax_referer( 'pds_ajax', 'nonce' );
 
 		$post_id      = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
-		$days         = isset( $_POST['expiry_days'] ) ? intval( $_POST['expiry_days'] ) : 7;
-		$allowed_days = array( 1, 3, 7, 14, 30, 0 );
+		$days         = isset( $_POST['expiry_days'] ) ? intval( $_POST['expiry_days'] ) : $this->get_default_expiry_days();
+		$allowed_days = $this->get_expiry_options();
 		if ( ! in_array( $days, $allowed_days, true ) ) {
-			$days = 7;
+			$days = $this->get_default_expiry_days();
 		}
 
-		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+		if ( ! $post_id || ! $this->can_share_post( $post_id ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'public-draft-share' ) ), 403 );
 		}
 
@@ -196,12 +211,43 @@ class Admin {
 		check_ajax_referer( 'pds_ajax', 'nonce' );
 
 		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
-		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+		if ( ! $post_id || ! $this->can_share_post( $post_id ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'public-draft-share' ) ), 403 );
 		}
 
 		Core::instance()->disable_share_link( $post_id );
 
 		wp_send_json_success( array( 'disabled' => true ) );
+	}
+
+	// ===== Helpers =====
+	/**
+	 * Get filterable expiry day options.
+	 *
+	 * @return int[] Array of day values (0 = never).
+	 */
+	private function get_expiry_options(): array {
+		$defaults = array( 1, 3, 7, 14, 30, 0 );
+		return apply_filters( 'pds_expiry_days_options', $defaults );
+	}
+
+	/**
+	 * Get the default expiry days.
+	 *
+	 * @return int Default days (0 = never).
+	 */
+	private function get_default_expiry_days(): int {
+		return (int) apply_filters( 'pds_default_expiry_days', 7 );
+	}
+
+	/**
+	 * Check if the current user can share a post.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool True if allowed.
+	 */
+	private function can_share_post( int $post_id ): bool {
+		$can = current_user_can( 'edit_post', $post_id );
+		return (bool) apply_filters( 'pds_can_share_post', $can, $post_id );
 	}
 }

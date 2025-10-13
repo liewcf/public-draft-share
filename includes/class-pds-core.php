@@ -58,6 +58,7 @@ class Core {
 		add_action( 'init', array( $this, 'add_rewrite_rules' ) );
 		add_filter( 'query_vars', array( $this, 'add_query_vars' ) );
 		add_action( 'send_headers', array( $this, 'maybe_no_cache_headers' ) );
+		add_action( 'wp_head', array( $this, 'add_noindex_meta' ), 1 );
 		add_action( 'parse_request', array( $this, 'detect_pds_request' ) );
 		add_action( 'pre_get_posts', array( $this, 'shape_main_query' ) );
 		add_filter( 'posts_pre_query', array( $this, 'short_circuit_posts' ), 10, 2 );
@@ -68,6 +69,8 @@ class Core {
 		add_action( 'save_post', array( $this, 'purge_on_save' ), 10, 2 );
 		// Auto-expire link on first publish.
 		add_action( 'transition_post_status', array( $this, 'auto_disable_on_publish' ), 10, 3 );
+		// Scheduled cache purge on expiry.
+		add_action( 'pds_purge_expired_url', array( $this, 'scheduled_purge_url' ), 10, 2 );
 		// One-time rewrite upgrade (support /pds/{post}/{token} structure).
 		add_action( 'admin_init', array( $this, 'maybe_upgrade_rewrites' ) );
 	}
@@ -88,9 +91,9 @@ class Core {
 	 * Add pretty permalink rule for /pds/{post_id}/{token}.
 	 */
 	public function add_rewrite_rules() {
-		// Only support: /pds/{post_id}/{token}.
+		$route_base = $this->get_route_base();
 		add_rewrite_rule(
-			'^pds/(\d+)/([A-Za-z0-9\-_=]+)/?$',
+			'^' . preg_quote( $route_base, '/' ) . '/(\d+)/([A-Za-z0-9\-_=]+)/?$',
 			'index.php?' . self::QUERY_VAR_POST . '=$matches[1]&' . self::QUERY_VAR . '=$matches[2]',
 			'top'
 		);
@@ -112,6 +115,7 @@ class Core {
 			$raw = wp_generate_password( $length, false, false );
 		}
 		// Make URL friendly.
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Used for token generation, not obfuscation.
 		return rtrim( strtr( base64_encode( $raw ), '+/', '-_' ), '=' );
 	}
 
@@ -132,7 +136,7 @@ class Core {
 		}
 		// Append a version parameter based on last modified time to bust caches reliably.
 		$ver = (int) get_post_modified_time( 'U', true, $post_id );
-		$url = home_url( $this->build_share_path( $post_id, $token ) );
+		$url = $this->build_share_url_raw( $post_id, $token );
 		if ( $ver ) {
 			$url = add_query_arg( 'v', $ver, $url );
 		}
@@ -140,14 +144,44 @@ class Core {
 	}
 
 	/**
-	 * Build relative path used for the share URL.
+	 * Build the complete share URL for a post and token.
 	 *
 	 * @param int    $post_id Post ID.
 	 * @param string $token   Token.
-	 * @return string Path.
+	 * @return string URL.
 	 */
-	private function build_share_path( int $post_id, string $token ): string {
-		return '/pds/' . $post_id . '/' . rawurlencode( $token );
+	private function build_share_url_raw( int $post_id, string $token ): string {
+		if ( $this->has_pretty_permalinks() ) {
+			$route_base = $this->get_route_base();
+			return home_url( '/' . trim( $route_base, '/' ) . '/' . $post_id . '/' . rawurlencode( $token ) );
+		}
+		// Fallback to query string for plain permalink structure.
+		return add_query_arg(
+			array(
+				self::QUERY_VAR_POST => $post_id,
+				self::QUERY_VAR      => rawurlencode( $token ),
+			),
+			home_url( '/index.php' )
+		);
+	}
+
+	/**
+	 * Check if the site uses pretty permalinks.
+	 *
+	 * @return bool True if pretty permalinks enabled.
+	 */
+	private function has_pretty_permalinks(): bool {
+		$structure = get_option( 'permalink_structure' );
+		return ! empty( $structure );
+	}
+
+	/**
+	 * Get the route base for share URLs (default: 'pds').
+	 *
+	 * @return string Route base.
+	 */
+	private function get_route_base(): string {
+		return apply_filters( 'pds_route_base', 'pds' );
 	}
 
 	/**
@@ -158,16 +192,26 @@ class Core {
 	 * @return string Token.
 	 */
 	public function set_share_link( int $post_id, int $expires_ts = 0 ): string {
-		// Purge old URL first if exists.
-		$old_url = $this->get_share_url( $post_id );
+		// Unschedule any existing purge event.
+		$this->unschedule_purge( $post_id );
+
+		// Purge old URL first if exists (build from stored meta even if expired).
+		$old_token = get_post_meta( $post_id, self::META_TOKEN, true );
+		if ( $old_token ) {
+			$old_url = $this->build_share_url_raw( $post_id, $old_token );
+			$this->purge_url_cache( $old_url );
+		}
 
 		$token = $this->generate_token( 32 );
 		update_post_meta( $post_id, self::META_TOKEN, $token );
 		update_post_meta( $post_id, self::META_EXPIRES, absint( $expires_ts ) );
 
-		if ( $old_url ) {
-			$this->purge_url_cache( $old_url );
+		// Schedule cache purge at expiry time if set.
+		if ( $expires_ts > 0 ) {
+			$new_url = $this->build_share_url_raw( $post_id, $token );
+			wp_schedule_single_event( $expires_ts, 'pds_purge_expired_url', array( $new_url, $post_id ) );
 		}
+
 		return $token;
 	}
 
@@ -177,12 +221,17 @@ class Core {
 	 * @param int $post_id Post ID.
 	 */
 	public function disable_share_link( int $post_id ): void {
-		$old_url = $this->get_share_url( $post_id );
-		delete_post_meta( $post_id, self::META_TOKEN );
-		delete_post_meta( $post_id, self::META_EXPIRES );
-		if ( $old_url ) {
+		// Unschedule any purge event.
+		$this->unschedule_purge( $post_id );
+
+		// Build URL from stored token even if expired to ensure cache purge.
+		$old_token = get_post_meta( $post_id, self::META_TOKEN, true );
+		if ( $old_token ) {
+			$old_url = $this->build_share_url_raw( $post_id, $old_token );
 			$this->purge_url_cache( $old_url );
 		}
+		delete_post_meta( $post_id, self::META_TOKEN );
+		delete_post_meta( $post_id, self::META_EXPIRES );
 	}
 
 	// ===== Frontend handling =====.
@@ -214,6 +263,11 @@ class Core {
 			return;
 		}
 		$token_raw = (string) $qv[ self::QUERY_VAR ];
+		// Reject tokens over 128 chars to reduce overhead from pathological inputs.
+		if ( strlen( $token_raw ) > 128 ) {
+			$this->pds_error = 'invalid';
+			return;
+		}
 		// Constrain to base64url charset we generate: A‑Z, a‑z, 0‑9, '-', '_', '='.
 		$token   = preg_replace( '/[^A-Za-z0-9\-_=]/', '', $token_raw );
 		$post_id = isset( $qv[ self::QUERY_VAR_POST ] ) ? absint( $qv[ self::QUERY_VAR_POST ] ) : 0;
@@ -226,6 +280,23 @@ class Core {
 			$this->pds_error = 'invalid';
 			return;
 		}
+
+		// Check if post type is public.
+		$pt = get_post_type_object( $post->post_type );
+		if ( ! $pt || empty( $pt->public ) ) {
+			$this->pds_error = 'invalid';
+			return;
+		}
+
+		// By default, reject password-protected posts unless filter allows.
+		if ( post_password_required( $post ) ) {
+			$allow_passworded = apply_filters( 'pds_allow_passworded', false, $post );
+			if ( ! $allow_passworded ) {
+				$this->pds_error = 'invalid';
+				return;
+			}
+		}
+
 		$stored = (string) get_post_meta( $post_id, self::META_TOKEN, true );
 		if ( empty( $stored ) || ! hash_equals( (string) $stored, $token ) ) {
 			$this->pds_error = 'invalid';
@@ -329,6 +400,7 @@ class Core {
 		if ( ! $this->pds_ctx ) {
 			return $allcaps;
 		}
+		// phpcs:ignore Squiz.PHP.CommentedOutCode.Found -- Documenting array structure, not commented code.
 		// $args: [0] requested cap, [1] user ID, [2] post_id.
 		if ( isset( $args[0], $args[2] ) && 'read_post' === $args[0] && (int) $args[2] === (int) $this->pds_ctx['post_id'] ) {
 			$allcaps['read_post'] = true;
@@ -370,6 +442,16 @@ class Core {
 	}
 
 	/**
+	 * Add noindex meta tag in wp_head for PDS views (backup if headers stripped).
+	 */
+	public function add_noindex_meta(): void {
+		$token = get_query_var( self::QUERY_VAR );
+		if ( ! empty( $token ) ) {
+			echo '<meta name="robots" content="noindex,nofollow">' . "\n";
+		}
+	}
+
+	/**
 	 * Disable canonical redirects on PDS requests to preserve tokens.
 	 *
 	 * @param string|false $redirect_url Redirect URL.
@@ -405,13 +487,117 @@ class Core {
 		// Prevent token leakage and clickjacking on PDS requests.
 		header( 'Referrer-Policy: no-referrer', true );
 		header( 'X-Frame-Options: DENY', true );
-		// Minimal baseline CSP: protect against framing. May be overridden below if strict mode enabled.
-		header( "Content-Security-Policy: frame-ancestors 'none'", true );
 		header( 'X-Content-Type-Options: nosniff', true );
 
-		// Optional strict CSP: blocks scripts on public draft views to reduce XSS risk from content.
-		if ( apply_filters( 'pds_strict_csp', false ) ) {
-			header( "Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'none'; base-uri 'self'", true );
+		// Build CSP: start with frame-ancestors, merge existing directives if any.
+		$existing_csp = $this->get_existing_csp_header();
+		$strict       = apply_filters( 'pds_strict_csp', false );
+
+		if ( $strict ) {
+			// Strict mode: our full policy takes precedence but we merge frame-ancestors if needed.
+			$csp = "default-src 'self'; frame-ancestors 'none'; script-src 'none'; base-uri 'self'";
+			if ( $existing_csp ) {
+				$csp = $this->merge_csp_policies( $existing_csp, $csp );
+			}
+		} elseif ( $existing_csp ) {
+			// Non-strict: only add frame-ancestors if missing; otherwise merge.
+			// If existing policy has frame-ancestors, keep it; otherwise add ours.
+			if ( false === stripos( $existing_csp, 'frame-ancestors' ) ) {
+				$csp = rtrim( $existing_csp, '; ' ) . "; frame-ancestors 'none'";
+			} else {
+				$csp = $existing_csp;
+			}
+		} else {
+			$csp = "frame-ancestors 'none'";
+		}
+
+		header( 'Content-Security-Policy: ' . $csp, true );
+	}
+
+	/**
+	 * Retrieve existing CSP header if set by another plugin/server.
+	 *
+	 * @return string Existing CSP or empty.
+	 */
+	private function get_existing_csp_header(): string {
+		if ( function_exists( 'headers_list' ) ) {
+			foreach ( headers_list() as $h ) {
+				if ( 0 === stripos( $h, 'Content-Security-Policy:' ) ) {
+					return trim( substr( $h, strlen( 'Content-Security-Policy:' ) ) );
+				}
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Merge two CSP policies by combining directives.
+	 *
+	 * @param string $existing     Existing policy.
+	 * @param string $new_policy   New policy to merge.
+	 * @return string Merged policy.
+	 */
+	private function merge_csp_policies( string $existing, string $new_policy ): string {
+		$parse = function ( $policy ) {
+			$directives = array();
+			foreach ( explode( ';', $policy ) as $part ) {
+				$part = trim( $part );
+				if ( '' === $part ) {
+					continue;
+				}
+				$tokens             = preg_split( '/\s+/', $part, 2 );
+				$dir                = strtolower( $tokens[0] );
+				$val                = isset( $tokens[1] ) ? $tokens[1] : '';
+				$directives[ $dir ] = $val;
+			}
+			return $directives;
+		};
+
+		$existing_dirs = $parse( $existing );
+		$new_dirs      = $parse( $new_policy );
+
+		// Merge: new overrides existing for same directive.
+		$merged = array_merge( $existing_dirs, $new_dirs );
+
+		$parts = array();
+		foreach ( $merged as $dir => $val ) {
+			$parts[] = '' === $val ? $dir : $dir . ' ' . $val;
+		}
+		return implode( '; ', $parts );
+	}
+
+	/**
+	 * Unschedule any pending purge event for a post.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	private function unschedule_purge( int $post_id ): void {
+		$timestamp = wp_next_scheduled( 'pds_purge_expired_url', array( '', $post_id ) );
+		if ( false !== $timestamp ) {
+			wp_unschedule_event( $timestamp, 'pds_purge_expired_url', array( '', $post_id ) );
+		}
+		// Also try with URL argument (fallback for any variant).
+		$token = get_post_meta( $post_id, self::META_TOKEN, true );
+		if ( $token ) {
+			$url       = $this->build_share_url_raw( $post_id, $token );
+			$timestamp = wp_next_scheduled( 'pds_purge_expired_url', array( $url, $post_id ) );
+			if ( false !== $timestamp ) {
+				wp_unschedule_event( $timestamp, 'pds_purge_expired_url', array( $url, $post_id ) );
+			}
+		}
+	}
+
+	/**
+	 * Scheduled action to purge a URL from cache.
+	 *
+	 * @param string $url     URL to purge.
+	 * @param int    $post_id Post ID.
+	 */
+	public function scheduled_purge_url( string $url, int $post_id ): void {
+		// Avoid unused parameter warning.
+		unset( $post_id );
+		if ( $url ) {
+			$this->purge_url_cache( $url );
 		}
 	}
 

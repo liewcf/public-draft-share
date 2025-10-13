@@ -28,16 +28,16 @@
     var $wrap = getWrap($box);
     $wrap.empty();
     $wrap.append(
-      $('<p/>', { class: 'pds-head' }).append($('<strong/>').text('Shareable link')),
+      $('<p/>', { class: 'pds-head' }).append($('<strong/>').text(PDS.i18n.shareableLink || 'Shareable link')),
       $('<p/>', { class: 'pds-link-wrap' }).append(
         $('<input/>', { type: 'text', class: 'widefat pds-link', readonly: true, value: link })
       ),
-      $('<p/>', { class: 'pds-expires', text: 'Expires: ' + (expiresHuman || 'Never') })
+      $('<p/>', { class: 'pds-expires', text: (PDS.i18n.expires || 'Expires') + ': ' + (expiresHuman || (PDS.i18n.never || 'Never')) })
     );
     var $actions = $('<div/>', { class: 'pds-actions' });
     $actions.append(
-      $('<button/>', { type: 'button', class: 'button button-link pds-btn pds-copy', text: 'Copy' }), ' ',
-      $('<button/>', { type: 'button', class: 'button button-link-delete pds-btn pds-disable', text: 'Disable' })
+      $('<button/>', { type: 'button', class: 'button button-link pds-btn pds-copy', text: PDS.i18n.copy || 'Copy' }), ' ',
+      $('<button/>', { type: 'button', class: 'button button-link-delete pds-btn pds-disable', text: PDS.i18n.disable || 'Disable' })
     );
     $wrap.append($actions);
   }
@@ -46,21 +46,23 @@
     var $wrap = getWrap($box);
     $wrap.empty();
     var $p = $('<p/>', { class: 'pds-create-wrap' }).append(
-      $('<label/>', { for: 'pds-expiry-' + postId, text: 'Expires in ' }),
+      $('<label/>', { for: 'pds-expiry-' + postId, text: (PDS.i18n.expiresIn || 'Expires in') + ' ' }),
       (function(){
         var $s = $('<select/>', { id: 'pds-expiry-' + postId, class: 'pds-expiry' });
-        [1,3,7,14,30,0].forEach(function (d) {
-          var label = d ? (d + ' ' + (d === 1 ? 'day' : 'days')) : 'Never';
+        var expiryOptions = PDS.expiryOptions || [1,3,7,14,30,0];
+        var defaultExpiry = PDS.defaultExpiry || 7;
+        expiryOptions.forEach(function (d) {
+          var label = d ? (d + ' ' + (d === 1 ? (PDS.i18n.day || 'day') : (PDS.i18n.days || 'days'))) : (PDS.i18n.never || 'Never');
           var $opt = $('<option/>', { value: String(d), text: label });
-          if (d === 7) $opt.attr('selected', 'selected');
+          if (d === defaultExpiry) $opt.attr('selected', 'selected');
           $s.append($opt);
         });
         return $s;
       })()
     );
-    var $btn = $('<button/>', { type: 'button', class: 'button button-primary pds-btn pds-create', text: 'Create Link' }).attr('data-post', postId);
+    var $btn = $('<button/>', { type: 'button', class: 'button button-primary pds-btn pds-create', text: PDS.i18n.createLink || 'Create Link' }).attr('data-post', postId);
     $wrap.append(
-      $('<p/>', { class: 'pds-desc', text: 'Generate a secure link so anyone can view this draft without logging in.' }),
+      $('<p/>', { class: 'pds-desc', text: PDS.i18n.description || 'Generate a secure link so anyone can view this draft without logging in.' }),
       $p,
       $btn
     );
@@ -105,11 +107,40 @@
 
   $(document).on('click', '.pds-copy', function (e) {
     e.preventDefault();
+    var $btn = $(this);
     var $box = closestMetaBox(this);
     var $input = getWrap($box).find('input.pds-link');
     if ($input.length) {
-      $input[0].select();
-      try { document.execCommand('copy'); } catch (e) {}
+      var url = $input.val();
+      var originalText = $btn.text();
+      
+      // Use modern Clipboard API with fallback
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function() {
+          showCopiedFeedback($btn, originalText);
+        }).catch(function() {
+          fallbackCopy($input[0], $btn, originalText);
+        });
+      } else {
+        fallbackCopy($input[0], $btn, originalText);
+      }
     }
   });
+
+  function fallbackCopy(inputEl, $btn, originalText) {
+    inputEl.select();
+    try {
+      document.execCommand('copy');
+      showCopiedFeedback($btn, originalText);
+    } catch (e) {
+      // Silent fail
+    }
+  }
+
+  function showCopiedFeedback($btn, originalText) {
+    $btn.text(PDS.i18n.copied || 'Copied!');
+    setTimeout(function() {
+      $btn.text(originalText);
+    }, 1500);
+  }
 })(jQuery);
