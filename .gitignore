@@ -12,3 +12,5 @@ vendor/
 .idea/
 .vscode/
 
+# Local notes (not for commit)
+TASKS.md

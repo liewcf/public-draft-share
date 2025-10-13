@@ -14,9 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Admin controller for meta box, assets, and AJAX endpoints.
  */
-/**
- * Admin controller for meta box, assets, and AJAX endpoints.
- */
 class Admin {
 	/**
 	 * Singleton instance.
