@@ -173,6 +173,8 @@ add_action( 'pds_purge_expired_url', function ( $url, $post_id ) {
 
 ## Development
 
+This repository does not include GitHub Actions workflows. Run checks and release packaging locally.
+
 - Lint PHP
 
 ```bash
@@ -234,7 +236,7 @@ For advanced configuration, see the [Available Filters](#available-filters) sect
 
 - Commits: Conventional Commits (e.g., `feat(admin-ui): …`, `fix(routing): …`).
 - PRs: Include summary, rationale, test steps, and screenshots/GIFs for UI changes. Link issues.
-- Releases: bump the `Version:` header, `PDS_VERSION`, and `readme.txt` Stable tag in a dedicated commit.
+- Releases: bump the `Version:` header, `PDS_VERSION`, and `readme.txt` Stable tag in a dedicated commit, then build and publish the ZIP manually.
 
 ## Uninstall
 
@@ -243,4 +245,3 @@ Running the WordPress uninstall routine removes all plugin post meta and the rew
 ## License
 
 GPL‑2.0‑or‑later. See `license.txt`.
-

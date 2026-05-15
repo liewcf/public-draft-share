@@ -46,6 +46,7 @@ All link tokens and expiry metadata are removed from the database.
 == Changelog ==
 
 = 1.0.1 =
+* Dev: Removed GitHub Actions workflows; checks and release packaging are now run locally.
 * Fix: Prevent creating share links for already-published posts (server guard).
 * Change: Theme renders the preview; plugin handles access + headers. Removed bundled template.
 * Fix: Rewrite rules self-heal on admin load if missing; avoids 404s until permalinks are flushed.
