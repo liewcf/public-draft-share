@@ -202,8 +202,10 @@ wp i18n make-pot . languages/public-draft-share.pot
 
 ```bash
 zip -r public-draft-share-1.0.1.zip . \
-  -x "*.git*" "*.zip" "vendor/**" \
-     ".github/**" "wp-cli.phar" \
+  -x "*.git*" "*.zip" ".DS_Store" \
+     "vendor/" "vendor/**" ".github/" ".github/**" "wp-cli.phar" \
+     "AGENTS.md" "docs/" "docs/**" "openspec/" "openspec/**" \
+     "output/" "output/**" "tmp/" "tmp/**" \
      "assets/banner-*.png" "assets/icon-*.png"
 ```
 

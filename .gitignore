@@ -14,4 +14,4 @@ vendor/
 .vscode/
 
 # Local notes (not for commit)
-TASKS.md
+/TASKS.md
