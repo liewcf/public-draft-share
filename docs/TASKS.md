@@ -16,6 +16,7 @@
 
 ## Recently Completed / Historical
 
+- [x] WordPress 7.0 compatibility smoke test in disposable Docker: activation, AJAX create/disable, expiry options, publish auto-disable, pretty permalink route, plain permalink fallback, targeted PHPCS, and clean post-check debug log.
 - [x] Plain permalink fallback for `index.php?pds_post={id}&pds_token={token}`.
 - [x] Localized admin JS labels and Clipboard API copy fallback.
 - [x] Filterable expiry options and default expiry handling in PHP and JS.

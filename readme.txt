@@ -2,7 +2,7 @@
 Contributors: Liew Cheon Fong
 Tags: preview, share, draft, link, private, token
 Requires at least: 5.8
-Tested up to: 6.8
+Tested up to: 7.0
 Requires PHP: 7.4
 Stable tag: 1.0.1
 License: GPLv2 or later
@@ -46,6 +46,7 @@ All link tokens and expiry metadata are removed from the database.
 == Changelog ==
 
 = 1.0.1 =
+* Dev: Verified compatibility with WordPress 7.0 in a disposable Docker smoke test.
 * Dev: Removed GitHub Actions workflows; checks and release packaging are now run locally.
 * Fix: Prevent creating share links for already-published posts (server guard).
 * Change: Theme renders the preview; plugin handles access + headers. Removed bundled template.

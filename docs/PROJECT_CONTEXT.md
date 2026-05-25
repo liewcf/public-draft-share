@@ -24,6 +24,7 @@
 - Run locally: copy the repo folder to `wp-content/plugins/public-draft-share/`, then activate in WP Admin or with `wp plugin activate public-draft-share`.
 - Package command: `zip -r public-draft-share-1.0.1.zip . -x "*.git*" "*.zip" ".DS_Store" "vendor/" "vendor/**" ".github/" ".github/**" "wp-cli.phar" "AGENTS.md" "docs/" "docs/**" "openspec/" "openspec/**" "output/" "output/**" "tmp/" "tmp/**" "assets/banner-*.png" "assets/icon-*.png"`
 - Automated test suite: none currently; rely on linting plus manual WordPress QA.
+- Compatibility check: on 2026-05-26, version 1.0.1 passed a disposable Docker smoke test on WordPress 7.0 with PHP 8.3 and MySQL 8.4.
 
 ## Manual QA
 

@@ -18,7 +18,7 @@ Create secure, shareable links so anyone can view a draft post or page without l
 - WordPress 5.8+
 - PHP 7.4+
 
-Tested up to WordPress 6.8. See `readme.txt` for WordPress.org metadata.
+Tested up to WordPress 7.0. The 1.0.1 plugin was smoke-tested on WordPress 7.0 with PHP 8.3 and MySQL 8.4. See `readme.txt` for WordPress.org metadata.
 
 ## Installation
 
