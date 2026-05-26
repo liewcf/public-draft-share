@@ -269,7 +269,11 @@ class Core {
 			return;
 		}
 		// Constrain to base64url charset we generate: A‑Z, a‑z, 0‑9, '-', '_', '='.
-		$token   = preg_replace( '/[^A-Za-z0-9\-_=]/', '', $token_raw );
+		if ( ! preg_match( '/^[A-Za-z0-9\-_=]+$/', $token_raw ) ) {
+			$this->pds_error = 'invalid';
+			return;
+		}
+		$token   = $token_raw;
 		$post_id = isset( $qv[ self::QUERY_VAR_POST ] ) ? absint( $qv[ self::QUERY_VAR_POST ] ) : 0;
 		if ( ! $post_id ) {
 			$this->pds_error = 'invalid';
