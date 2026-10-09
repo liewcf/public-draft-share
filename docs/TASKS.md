@@ -2,7 +2,7 @@
 
 ## Current Follow-Ups
 
-- [ ] Recommended next action: decide whether the `grant_read_cap` change on `fix/audit-findings` needs a short OpenSpec proposal, then merge to `main` (WP 7.1.3 Docker QA green: 19/19 regression + 20/20 follow-up checks; `Tested up to: 7.1` already bumped on the branch).
+- [ ] After the next release ships: archive OpenSpec change `update-share-link-access-checks` into `openspec/specs/share-link-access/`.
 - [ ] Remaining audit items: placeholder Plugin URI, `readme.txt` Contributors slug, stale POT line refs, lint tooling incompatible with PHP 8.5 (PHPCS not run on the follow-up changes).
 - [ ] Optional cache integrations: consider Cloudflare and host-specific purge hooks behind explicit filters.
 - [ ] Optional release validation: verify non-canonical plain-permalink `pds_token` values return the invalid/expired page on a real WordPress site, then check disable/expiry/publish revocation through the configured cache layer if caching is release-critical.

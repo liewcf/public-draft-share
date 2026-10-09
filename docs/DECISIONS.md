@@ -5,6 +5,7 @@
 - Cache purges target every `?v=` variant a visitor may hold, not just the current one: `pre_post_update` records the pre-save version in `_pds_versions` (capped at 20, cleared on disable/regenerate). Rationale: `?v=` is the GMT modified time, which changes on every save and before `transition_post_status`, so purging only the current version missed the first-publish auto-disable path.
 - `scheduled_purge_url()` always purges the URL stored with the cron event and adds the `?v=` variants only when that URL still matches the current token, so a missed unschedule never drops the stale URL.
 - Share links reject posts in `trash`, `auto-draft`, or `inherit` status (denylist, so custom editorial statuses keep working). Treated as a direct bug fix.
+- The `grant_read_cap` read-permission change and the trash rejection are recorded as OpenSpec change `update-share-link-access-checks` (new `share-link-access` capability), written after implementation at the owner's request.
 - `get_route_base()` trims slashes and falls back to `pds` when empty, so rewrite rules, self-heal, and generated URLs share one value.
 
 ## 2026-05-15
