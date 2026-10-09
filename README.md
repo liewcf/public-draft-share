@@ -201,7 +201,7 @@ wp i18n make-pot . languages/public-draft-share.pot
 - Package ZIP (adjust version as needed)
 
 ```bash
-zip -r public-draft-share-1.0.1.zip . \
+zip -r public-draft-share-1.0.2.zip . \
   -x "*.git*" "*.zip" ".DS_Store" \
      "vendor/" "vendor/**" ".github/" ".github/**" "wp-cli.phar" \
      "AGENTS.md" "docs/" "docs/**" "openspec/" "openspec/**" \

@@ -3,7 +3,7 @@
  * Plugin Name: Public Draft Share
  * Plugin URI: https://github.com/liewcf/public-draft-share
  * Description: Create secure, shareable links to view draft posts and pages without logging in.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: Liew Cheon Fong
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PDS_VERSION', '1.0.1' );
+define( 'PDS_VERSION', '1.0.2' );
 define( 'PDS_PLUGIN_FILE', __FILE__ );
 define( 'PDS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PDS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

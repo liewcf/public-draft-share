@@ -33,7 +33,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 - Lint PHP: `phpcs -s --standard=phpcs.xml.dist .`
 - Auto‑fix: `phpcbf --standard=phpcs.xml.dist .`
 - Update POT: `wp i18n make-pot . languages/public-draft-share.pot`
-- Package ZIP: `zip -r public-draft-share-1.0.1.zip . -x "*.git*" "*.zip" ".DS_Store" "vendor/" "vendor/**" ".github/" ".github/**" "wp-cli.phar" "AGENTS.md" "docs/" "docs/**" "openspec/" "openspec/**" "output/" "output/**" "tmp/" "tmp/**" "assets/banner-*.png" "assets/icon-*.png"`
+- Package ZIP: `zip -r public-draft-share-1.0.2.zip . -x "*.git*" "*.zip" ".DS_Store" "vendor/" "vendor/**" ".github/" ".github/**" "wp-cli.phar" "AGENTS.md" "docs/" "docs/**" "openspec/" "openspec/**" "output/" "output/**" "tmp/" "tmp/**" "assets/banner-*.png" "assets/icon-*.png"`
 
 ## Coding Style & Naming Conventions
 - **PHP**: WordPress‑Core/Docs/Extra per `phpcs.xml.dist`; target PHP 7.4+. Indent with tabs (WPCS default). Use escaping helpers and WP APIs.

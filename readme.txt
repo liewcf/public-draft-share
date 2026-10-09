@@ -4,7 +4,7 @@ Tags: preview, share, draft, link, private, token
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,13 @@ All link tokens and expiry metadata are removed from the database.
 1. Meta box with create/disable controls
 
 == Changelog ==
+
+= 1.0.2 =
+* Fix: Visitors with a valid share link now pass read-permission checks for the shared post, so themes and plugins that call `current_user_can( 'read_post' )` show it correctly.
+* Fix: Share links stop working when the post is moved to the trash, and work again if it is restored.
+* Fix: A custom `pds_route_base` no longer triggers a rewrite flush on every admin page load; slashes around the base are now trimmed.
+* Fix: Disabling, regenerating, expiring, saving, and publishing now purge every cached version of the share URL, including older `?v=` versions.
+* Dev: Tested up to WordPress 7.1. Updated dev lint tooling and regenerated the translation template.
 
 = 1.0.1 =
 * Dev: Verified compatibility with WordPress 7.0 in a disposable Docker smoke test.
