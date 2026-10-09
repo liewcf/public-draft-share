@@ -134,9 +134,24 @@ class Core {
 		if ( $expires && time() > $expires ) {
 			return null; // Expired.
 		}
+		return $this->build_versioned_share_url( $post_id, (string) $token );
+	}
+
+	/**
+	 * Build the share URL with the cache-busting version parameter appended.
+	 *
+	 * This is the URL visitors actually receive, so cache purges must target
+	 * it as well; purge_url_cache() strips query args to also cover the raw
+	 * URL variant.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $token   Token.
+	 * @return string Share URL (with ?v= when a modified time is available).
+	 */
+	private function build_versioned_share_url( int $post_id, string $token ): string {
+		$url = $this->build_share_url_raw( $post_id, $token );
 		// Append a version parameter based on last modified time to bust caches reliably.
 		$ver = (int) get_post_modified_time( 'U', true, $post_id );
-		$url = $this->build_share_url_raw( $post_id, $token );
 		if ( $ver ) {
 			$url = add_query_arg( 'v', $ver, $url );
 		}
@@ -196,10 +211,11 @@ class Core {
 		$this->unschedule_purge( $post_id );
 
 		// Purge old URL first if exists (build from stored meta even if expired).
+		// Purge the versioned URL visitors actually received; purge_url_cache()
+		// strips query args to also cover the raw variant.
 		$old_token = get_post_meta( $post_id, self::META_TOKEN, true );
 		if ( $old_token ) {
-			$old_url = $this->build_share_url_raw( $post_id, $old_token );
-			$this->purge_url_cache( $old_url );
+			$this->purge_url_cache( $this->build_versioned_share_url( $post_id, (string) $old_token ) );
 		}
 
 		$token = $this->generate_token( 32 );
@@ -225,10 +241,11 @@ class Core {
 		$this->unschedule_purge( $post_id );
 
 		// Build URL from stored token even if expired to ensure cache purge.
+		// Purge the versioned URL visitors actually received; purge_url_cache()
+		// strips query args to also cover the raw variant.
 		$old_token = get_post_meta( $post_id, self::META_TOKEN, true );
 		if ( $old_token ) {
-			$old_url = $this->build_share_url_raw( $post_id, $old_token );
-			$this->purge_url_cache( $old_url );
+			$this->purge_url_cache( $this->build_versioned_share_url( $post_id, (string) $old_token ) );
 		}
 		delete_post_meta( $post_id, self::META_TOKEN );
 		delete_post_meta( $post_id, self::META_EXPIRES );
@@ -634,8 +651,12 @@ class Core {
 	 * @param int    $post_id Post ID.
 	 */
 	public function scheduled_purge_url( string $url, int $post_id ): void {
-		// Avoid unused parameter warning.
-		unset( $post_id );
+		// Cron stores the raw URL; prefer the versioned URL visitors actually
+		// received so caches keying on the full URL are purged as well.
+		$token = get_post_meta( $post_id, self::META_TOKEN, true );
+		if ( $token ) {
+			$url = $this->build_versioned_share_url( $post_id, (string) $token );
+		}
 		if ( $url ) {
 			$this->purge_url_cache( $url );
 		}
