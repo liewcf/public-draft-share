@@ -10,4 +10,4 @@
 - [x] 2.4 Regression: drafts not reachable without a token, invalid token returns 404, clean debug log
 
 ## 3. Archive
-- [ ] 3.1 After the next release ships, archive this change and move the requirements into `openspec/specs/share-link-access/spec.md`
+- [x] 3.1 After the next release ships (1.0.2), archive this change and move the requirements into `openspec/specs/share-link-access/spec.md`

@@ -2,8 +2,6 @@
 
 ## Current Follow-Ups
 
-- [ ] Recommended next action: build `public-draft-share-1.0.2.zip` with the package command, tag `v1.0.2`, and publish (GitHub release and/or WordPress.org SVN).
-- [ ] After 1.0.2 ships: archive OpenSpec change `update-share-link-access-checks` into `openspec/specs/share-link-access/`.
 - [ ] Optional cache integrations: consider Cloudflare and host-specific purge hooks behind explicit filters.
 - [ ] Optional release validation: verify non-canonical plain-permalink `pds_token` values return the invalid/expired page on a real WordPress site, then check disable/expiry/publish revocation through the configured cache layer if caching is release-critical.
 - [ ] CI/static-analysis improvements: consider PHPStan with a baseline, Composer cache in CI, and ESLint for `assets/admin.js`.
@@ -18,6 +16,8 @@
 - [ ] When routing changes, check both pretty permalinks and plain permalink fallback.
 
 ## Recently Completed / Historical
+
+- [x] 2026-10-09 released 1.0.2: tag `v1.0.2`, GitHub release with `public-draft-share-1.0.2.zip` (SHA256 `75f592f2…5f1741`, installed and smoke-tested on WP 7.1.3 before tagging); OpenSpec change archived into `openspec/specs/share-link-access/`.
 
 - [x] 2026-10-09 maintenance: patched dev lint dependencies (3 high Dependabot alerts), PHPCS runs clean on PHP 8.5, Plugin URI set to GitHub, Contributors set to `liewcf`, POT regenerated.
 

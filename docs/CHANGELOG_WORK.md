@@ -4,7 +4,10 @@
 
 - Bumped to 1.0.2: plugin header `Version:`, `PDS_VERSION`, `readme.txt` Stable tag, POT `Project-Id-Version`, and ZIP names in `AGENTS.md`, `README.md`, `docs/PROJECT_CONTEXT.md`. Added the 1.0.2 `readme.txt` changelog entry.
 - Closed superseded Dependabot PR #1 and deleted its branch. Removed merged local branches `fix/audit-findings` and `chore/maintenance`, the `../public-draft-share-fixes` worktree, and the `pds-qa` Docker stack (volumes included). QA scripts remain in the local temp harness dir.
-- Not done: ZIP build, git tag, and publishing.
+- Packaging switched to `git archive --prefix=public-draft-share/` from the tag (see `docs/DECISIONS.md`); `.gitattributes` now also export-ignores `README.md`, `docs/`, `openspec/`. Docs updated in `AGENTS.md`, `README.md`, `docs/PROJECT_CONTEXT.md`.
+- Verified the built ZIP on a throwaway WP 7.1.3 Docker site (`pds-zip` project, removed afterwards): `wp plugin install <zip> --activate` lands in `wp-content/plugins/public-draft-share/` as 1.0.2; share link 200 with content, no-token 404, disabled link 404, clean debug log. Gotcha: the `wordpress:cli` image runs as uid 82, so installs need `exec -u 33:33` to write `wp-content`.
+- Released: annotated tag `v1.0.2`, GitHub release "Public Draft Share 1.0.2" (Latest) with the ZIP; uploaded asset digest matches local SHA256. Release notes include upgrade steps for 1.0.1 ZIP installs that landed in a `public-draft-share-1.0.1/` folder (deactivate old copy first; remove the folder without WP Admin "Delete", which would run `uninstall.php` and wipe share links).
+- Archived OpenSpec change to `openspec/changes/archive/2026-10-09-update-share-link-access-checks/`; new spec `openspec/specs/share-link-access/spec.md` (Purpose filled in) passes `openspec validate --specs --strict`.
 
 ## 2026-10-09 (branch `chore/maintenance`)
 
