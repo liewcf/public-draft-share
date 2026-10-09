@@ -2,7 +2,8 @@
 
 ## Current Follow-Ups
 
-- [ ] After the next release ships: archive OpenSpec change `update-share-link-access-checks` into `openspec/specs/share-link-access/`.
+- [ ] Recommended next action: build `public-draft-share-1.0.2.zip` with the package command, tag `v1.0.2`, and publish (GitHub release and/or WordPress.org SVN).
+- [ ] After 1.0.2 ships: archive OpenSpec change `update-share-link-access-checks` into `openspec/specs/share-link-access/`.
 - [ ] Optional cache integrations: consider Cloudflare and host-specific purge hooks behind explicit filters.
 - [ ] Optional release validation: verify non-canonical plain-permalink `pds_token` values return the invalid/expired page on a real WordPress site, then check disable/expiry/publish revocation through the configured cache layer if caching is release-critical.
 - [ ] CI/static-analysis improvements: consider PHPStan with a baseline, Composer cache in CI, and ESLint for `assets/admin.js`.

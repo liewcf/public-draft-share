@@ -1,5 +1,11 @@
 # Work Changelog
 
+## 2026-10-09 (release 1.0.2 prep on `main`)
+
+- Bumped to 1.0.2: plugin header `Version:`, `PDS_VERSION`, `readme.txt` Stable tag, POT `Project-Id-Version`, and ZIP names in `AGENTS.md`, `README.md`, `docs/PROJECT_CONTEXT.md`. Added the 1.0.2 `readme.txt` changelog entry.
+- Closed superseded Dependabot PR #1 and deleted its branch. Removed merged local branches `fix/audit-findings` and `chore/maintenance`, the `../public-draft-share-fixes` worktree, and the `pds-qa` Docker stack (volumes included). QA scripts remain in the local temp harness dir.
+- Not done: ZIP build, git tag, and publishing.
+
 ## 2026-10-09 (branch `chore/maintenance`)
 
 - `composer.lock`: `composer update --with-all-dependencies` fixes the 3 high Dependabot alerts (all dev-only lint tooling): `squizlabs/php_codesniffer` 3.13.6, `wp-coding-standards/wpcs` 3.4.1, `phpcsstandards/phpcsutils` 1.2.3. `composer audit` clean.

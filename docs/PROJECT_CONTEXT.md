@@ -4,7 +4,7 @@
 
 - Project purpose: Public Draft Share is a WordPress plugin that creates secure, revocable public links for unpublished posts/pages so reviewers can view drafts without logging in.
 - Primary users: WordPress site editors/admins who need to share drafts externally.
-- Current status: Version 1.0.1 plugin source with WordPress.org-style `readme.txt`, GitHub `README.md`, WPCS config, admin assets, translation POT, and release/package guidance.
+- Current status: Version 1.0.2 plugin source with WordPress.org-style `readme.txt`, GitHub `README.md`, WPCS config, admin assets, translation POT, and release/package guidance.
 
 ## Architecture
 
@@ -12,7 +12,7 @@
 - `includes/class-pds-core.php` owns token generation, `/pds/{post_id}/{token}` and plain-permalink routing, request validation, query shaping, temporary `read_post` access, no-cache/noindex/security headers, cache purges, expiry cleanup, and auto-disable on first publish.
 - `includes/class-pds-admin.php` owns the editor meta box, localized jQuery admin script data, AJAX create/disable handlers, expiry options, capability checks, and admin UI rendering.
 - `assets/admin.js` updates the meta box with jQuery, calls `wp_ajax_pds_generate` / `wp_ajax_pds_disable`, and copies links using Clipboard API with `execCommand` fallback.
-- `uninstall.php` deletes `_pds_token`, `_pds_expires`, and `pds_rewrite_version` across single-site or multisite installs.
+- `uninstall.php` deletes `_pds_token`, `_pds_expires`, `_pds_versions`, and `pds_rewrite_version` across single-site or multisite installs.
 - `openspec/` is present for proposal-driven changes; feature, breaking, architecture, security, and performance-behavior changes should follow the OpenSpec gate before implementation.
 
 ## Development Workflow
@@ -22,9 +22,9 @@
 - Auto-fix command: `composer run fix` or `phpcbf --standard=phpcs.xml.dist .`
 - POT command: `wp i18n make-pot . languages/public-draft-share.pot`
 - Run locally: copy the repo folder to `wp-content/plugins/public-draft-share/`, then activate in WP Admin or with `wp plugin activate public-draft-share`.
-- Package command: `zip -r public-draft-share-1.0.1.zip . -x "*.git*" "*.zip" ".DS_Store" "vendor/" "vendor/**" ".github/" ".github/**" "wp-cli.phar" "AGENTS.md" "docs/" "docs/**" "openspec/" "openspec/**" "output/" "output/**" "tmp/" "tmp/**" "assets/banner-*.png" "assets/icon-*.png"`
+- Package command: `zip -r public-draft-share-1.0.2.zip . -x "*.git*" "*.zip" ".DS_Store" "vendor/" "vendor/**" ".github/" ".github/**" "wp-cli.phar" "AGENTS.md" "docs/" "docs/**" "openspec/" "openspec/**" "output/" "output/**" "tmp/" "tmp/**" "assets/banner-*.png" "assets/icon-*.png"`
 - Automated test suite: none currently; rely on linting plus manual WordPress QA.
-- Compatibility check: on 2026-05-26, version 1.0.1 passed a disposable Docker smoke test on WordPress 7.0 with PHP 8.3 and MySQL 8.4.
+- Compatibility check: on 2026-05-26, version 1.0.1 passed a disposable Docker smoke test on WordPress 7.0 with PHP 8.3 and MySQL 8.4. On 2026-10-09, the 1.0.2 code passed Docker QA on WordPress 7.1.3 with PHP 8.3 and MySQL 8.4 (19 regression + 20 follow-up checks).
 
 ## Manual QA
 
