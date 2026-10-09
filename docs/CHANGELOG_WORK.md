@@ -1,5 +1,11 @@
 # Work Changelog
 
+## 2026-10-09 (remove OpenSpec)
+
+- Moved the `share-link-access` requirements into `docs/PROJECT_CONTEXT.md` ("Share Link Access Rules"), then deleted `openspec/` (7 files; recoverable from commit `ef29236`).
+- `AGENTS.md`: removed the `OPENSPEC:START/END` block; added the new rule (dated `docs/DECISIONS.md` entry before merging security/behavior changes). `.gitattributes`: dropped `/openspec/`. `docs/PROJECT_CONTEXT.md`: new rule under Constraints; package-command note no longer mentions `openspec/`. `docs/DECISIONS.md`: dated entry replacing the 2026-05-15 OpenSpec rule.
+- Older dated entries that mention OpenSpec are left as history. The Homebrew `openspec` CLI stays installed (not repo-specific).
+
 ## 2026-10-09 (release 1.0.2 prep on `main`)
 
 - Bumped to 1.0.2: plugin header `Version:`, `PDS_VERSION`, `readme.txt` Stable tag, POT `Project-Id-Version`, and ZIP names in `AGENTS.md`, `README.md`, `docs/PROJECT_CONTEXT.md`. Added the 1.0.2 `readme.txt` changelog entry.

@@ -1,22 +1,3 @@
-<!-- OPENSPEC:START -->
-# OpenSpec Instructions
-
-These instructions are for AI assistants working in this project.
-
-Always open `@/openspec/AGENTS.md` when the request:
-- Mentions planning or proposals (words like proposal, spec, change, plan)
-- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
-- Sounds ambiguous and you need the authoritative spec before coding
-
-Use `@/openspec/AGENTS.md` to learn:
-- How to create and apply change proposals
-- Spec format and conventions
-- Project structure and guidelines
-
-Keep this managed block so 'openspec update' can refresh the instructions.
-
-<!-- OPENSPEC:END -->
-
 # Repository Guidelines
 
 ## Project Structure & Module Organization
@@ -50,6 +31,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 ## Commit & Pull Request Guidelines
 - **Commits**: Follow Conventional Commits (e.g., `feat(admin-ui): …`, `fix(routing): …`).
+- **Security/behavior changes**: Add a dated entry to `docs/DECISIONS.md` (what and why) before merging; check the share-link access rules in `docs/PROJECT_CONTEXT.md`. Plain bug fixes restoring intended behavior and small docs/config updates don't need one.
 - **PRs**: Include summary, rationale, test steps, and screenshots/GIFs for UI. Link issues. If preparing a release, bump `Version:` header, `PDS_VERSION`, and `readme.txt` Stable tag in a separate commit.
 
 ## Security & Configuration Tips
