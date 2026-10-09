@@ -1,4 +1,9 @@
 <?php
-// Silence is golden.
+/**
+ * Silence is golden.
+ *
+ * @package PublicDraftShare
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }

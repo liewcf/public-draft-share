@@ -15,7 +15,14 @@
 
   <file>public-draft-share.php</file>
   <file>includes</file>
+  <file>uninstall.php</file>
   <!-- templates/ removed; plugin defers rendering to theme. -->
 
+  <!-- Dependency test fixtures crash sniffs when "." is passed on the command line. -->
+  <exclude-pattern>/vendor/*</exclude-pattern>
+
   <config name="testVersion" value="7.4-"/>
+
+  <!-- PHP only; admin JS follows .editorconfig (2-space indent). -->
+  <arg name="extensions" value="php"/>
 </ruleset>
