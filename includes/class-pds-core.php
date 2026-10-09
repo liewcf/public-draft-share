@@ -17,8 +17,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Core {
 	const META_TOKEN     = '_pds_token';
 	const META_EXPIRES   = '_pds_expires';
+	const META_VERSIONS  = '_pds_versions';
 	const QUERY_VAR      = 'pds_token';
 	const QUERY_VAR_POST = 'pds_post';
+
+	/**
+	 * Maximum number of past ?v= versions remembered per share link.
+	 */
+	const MAX_VERSIONS = 20;
 
 	/**
 	 * Singleton instance.
@@ -65,6 +71,8 @@ class Core {
 		add_filter( 'user_has_cap', array( $this, 'grant_read_cap' ), 10, 4 );
 		add_action( 'template_redirect', array( $this, 'maybe_render_public_draft' ), 0 );
 		add_filter( 'redirect_canonical', array( $this, 'bypass_canonical_on_pds' ), 10, 2 );
+		// Remember the ?v= version in use before a save changes the modified time.
+		add_action( 'pre_post_update', array( $this, 'remember_version' ) );
 		// If the author saves the post, purge any cached shared URL so updates show up.
 		add_action( 'save_post', array( $this, 'purge_on_save' ), 10, 2 );
 		// Auto-expire link on first publish.
@@ -140,22 +148,97 @@ class Core {
 	/**
 	 * Build the share URL with the cache-busting version parameter appended.
 	 *
-	 * This is the URL visitors actually receive, so cache purges must target
-	 * it as well; purge_url_cache() strips query args to also cover the raw
-	 * URL variant.
+	 * This is the URL visitors actually receive; purges cover it and older
+	 * versions via get_share_url_variants().
 	 *
 	 * @param int    $post_id Post ID.
 	 * @param string $token   Token.
 	 * @return string Share URL (with ?v= when a modified time is available).
 	 */
 	private function build_versioned_share_url( int $post_id, string $token ): string {
-		$url = $this->build_share_url_raw( $post_id, $token );
 		// Append a version parameter based on last modified time to bust caches reliably.
-		$ver = (int) get_post_modified_time( 'U', true, $post_id );
-		if ( $ver ) {
-			$url = add_query_arg( 'v', $ver, $url );
+		return $this->add_version_arg( $this->build_share_url_raw( $post_id, $token ), $this->get_current_version( $post_id ) );
+	}
+
+	/**
+	 * Current ?v= version for a post (GMT modified timestamp, 0 if unset).
+	 *
+	 * @param int $post_id Post ID.
+	 * @return int Version.
+	 */
+	private function get_current_version( int $post_id ): int {
+		return (int) get_post_modified_time( 'U', true, $post_id );
+	}
+
+	/**
+	 * Append the ?v= version argument to a share URL.
+	 *
+	 * @param string $url Raw share URL.
+	 * @param int    $ver Version (0 leaves the URL unchanged).
+	 * @return string URL.
+	 */
+	private function add_version_arg( string $url, int $ver ): string {
+		return $ver ? add_query_arg( 'v', $ver, $url ) : $url;
+	}
+
+	/**
+	 * All share URL variants visitors may hold for a token.
+	 *
+	 * The ?v= value changes on every save, so visitors may have received an
+	 * older version than the current one. Include the raw URL, the current
+	 * version, and every version remembered while this token was active.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $token   Token.
+	 * @return string[] URLs.
+	 */
+	private function get_share_url_variants( int $post_id, string $token ): array {
+		$raw      = $this->build_share_url_raw( $post_id, $token );
+		$versions = (array) get_post_meta( $post_id, self::META_VERSIONS, true );
+		$versions = array_merge( $versions, array( $this->get_current_version( $post_id ) ) );
+		$urls     = array( $raw );
+		foreach ( array_unique( array_map( 'intval', $versions ) ) as $ver ) {
+			$urls[] = $this->add_version_arg( $raw, $ver );
 		}
-		return $url;
+		return array_values( array_unique( $urls ) );
+	}
+
+	/**
+	 * Purge every share URL variant for the post's stored token, if any.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	private function purge_share_link( int $post_id ): void {
+		$token = get_post_meta( $post_id, self::META_TOKEN, true );
+		if ( $token ) {
+			$this->purge_urls( $this->get_share_url_variants( $post_id, (string) $token ) );
+		}
+	}
+
+	/**
+	 * Before a post update, remember the ?v= version visitors may hold.
+	 *
+	 * Hooked to pre_post_update, which runs before the modified time changes,
+	 * so later purges (save, first publish, disable) can still target it.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	public function remember_version( $post_id ): void {
+		$post_id = (int) $post_id;
+		if ( ! get_post_meta( $post_id, self::META_TOKEN, true ) ) {
+			return;
+		}
+		$ver = $this->get_current_version( $post_id );
+		if ( ! $ver ) {
+			return;
+		}
+		$versions = array_map( 'intval', (array) get_post_meta( $post_id, self::META_VERSIONS, true ) );
+		if ( in_array( $ver, $versions, true ) ) {
+			return;
+		}
+		$versions[] = $ver;
+		$versions   = array_slice( array_values( array_filter( $versions ) ), -self::MAX_VERSIONS );
+		update_post_meta( $post_id, self::META_VERSIONS, $versions );
 	}
 
 	/**
@@ -213,13 +296,9 @@ class Core {
 		// Unschedule any existing purge event.
 		$this->unschedule_purge( $post_id );
 
-		// Purge old URL first if exists (build from stored meta even if expired).
-		// Purge the versioned URL visitors actually received; purge_url_cache()
-		// strips query args to also cover the raw variant.
-		$old_token = get_post_meta( $post_id, self::META_TOKEN, true );
-		if ( $old_token ) {
-			$this->purge_url_cache( $this->build_versioned_share_url( $post_id, (string) $old_token ) );
-		}
+		// Purge old URL variants first if any (build from stored meta even if expired).
+		$this->purge_share_link( $post_id );
+		delete_post_meta( $post_id, self::META_VERSIONS );
 
 		$token = $this->generate_token( 32 );
 		update_post_meta( $post_id, self::META_TOKEN, $token );
@@ -243,15 +322,11 @@ class Core {
 		// Unschedule any purge event.
 		$this->unschedule_purge( $post_id );
 
-		// Build URL from stored token even if expired to ensure cache purge.
-		// Purge the versioned URL visitors actually received; purge_url_cache()
-		// strips query args to also cover the raw variant.
-		$old_token = get_post_meta( $post_id, self::META_TOKEN, true );
-		if ( $old_token ) {
-			$this->purge_url_cache( $this->build_versioned_share_url( $post_id, (string) $old_token ) );
-		}
+		// Build URLs from stored token even if expired to ensure cache purge.
+		$this->purge_share_link( $post_id );
 		delete_post_meta( $post_id, self::META_TOKEN );
 		delete_post_meta( $post_id, self::META_EXPIRES );
+		delete_post_meta( $post_id, self::META_VERSIONS );
 	}
 
 	// ===== Frontend handling =====.
@@ -661,27 +736,34 @@ class Core {
 	 * @param int    $post_id Post ID.
 	 */
 	public function scheduled_purge_url( string $url, int $post_id ): void {
-		// Cron stores the raw URL; prefer the versioned URL visitors actually
-		// received so caches keying on the full URL are purged as well.
+		// Always purge the URL stored with the event. If it still belongs to the
+		// current token, also purge the ?v= variants visitors may hold.
+		$urls  = $url ? array( $url ) : array();
 		$token = get_post_meta( $post_id, self::META_TOKEN, true );
-		if ( $token ) {
-			$url = $this->build_versioned_share_url( $post_id, (string) $token );
+		if ( $token && ( ! $url || $this->build_share_url_raw( $post_id, (string) $token ) === $url ) ) {
+			$urls = array_merge( $urls, $this->get_share_url_variants( $post_id, (string) $token ) );
 		}
-		if ( $url ) {
-			$this->purge_url_cache( $url );
+		if ( $urls ) {
+			$this->purge_urls( $urls );
 		}
 	}
 
 	/**
-	 * Purge page cache for the given URL across popular plugins/services.
+	 * Purge page cache for the given URLs across popular plugins/services.
 	 *
-	 * @param string $url URL to purge.
+	 * @param string[] $input_urls URLs to purge.
 	 */
-	private function purge_url_cache( string $url ): void {
-		$urls = array( $url );
-		// Also purge variant without query arguments in case cache ignores them.
-		$urls[] = remove_query_arg( array_keys( wp_parse_args( wp_parse_url( $url, PHP_URL_QUERY ) ?: '' ) ), $url );
-		$urls   = array_unique( array_filter( $urls ) );
+	private function purge_urls( array $input_urls ): void {
+		$urls = array();
+		foreach ( $input_urls as $url ) {
+			$urls[] = $url;
+			// Also purge variant without query arguments in case cache ignores them.
+			$urls[] = remove_query_arg( array_keys( wp_parse_args( wp_parse_url( $url, PHP_URL_QUERY ) ?: '' ) ), $url );
+		}
+		$urls = array_values( array_unique( array_filter( $urls ) ) );
+		if ( ! $urls ) {
+			return;
+		}
 		// WP Rocket.
 		if ( function_exists( 'rocket_clean_files' ) ) {
 			rocket_clean_files( $urls );
@@ -732,10 +814,12 @@ class Core {
 		if ( ! $pt_obj || empty( $pt_obj->public ) ) {
 			return;
 		}
-		$url = $this->get_share_url( $post_id );
-		if ( $url ) {
-			$this->purge_url_cache( $url );
+		// Skip expired links (matches get_share_url()); scheduled purge covers expiry.
+		if ( ! $this->get_share_url( $post_id ) ) {
+			return;
 		}
+		// Purge the new version plus older ones remembered in remember_version().
+		$this->purge_share_link( $post_id );
 	}
 
 	// Disable and purge on publish to avoid lingering public access after going live.

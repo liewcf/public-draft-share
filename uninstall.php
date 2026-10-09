@@ -20,6 +20,7 @@ function pds_uninstall_site() {
 	if ( function_exists( 'delete_post_meta_by_key' ) ) {
 		delete_post_meta_by_key( '_pds_token' );
 		delete_post_meta_by_key( '_pds_expires' );
+		delete_post_meta_by_key( '_pds_versions' );
 	}
 
 	// Remove rewrite version option.
