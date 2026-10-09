@@ -390,10 +390,15 @@ class Core {
 
 	// Grant read permission for this specific post to anonymous visitors.
 	/**
-	 * Temporarily grant read_post for the target post.
+	 * Temporarily grant read access for the shared post.
+	 *
+	 * 'read_post' is a meta capability: map_meta_cap() translates it into
+	 * primitive caps (e.g. 'edit_others_posts' for drafts, 'read_private_posts'
+	 * for private posts) and those primitives are what WordPress checks. So
+	 * grant the mapped primitives in $caps, not the meta cap name.
 	 *
 	 * @param array $allcaps All caps.
-	 * @param array $caps    Required caps.
+	 * @param array $caps    Mapped primitive caps required for this check.
 	 * @param array $args    Args: [0] cap, [1] user, [2] post_id.
 	 * @param array $_user   User (unused).
 	 * @return array Filtered caps.
@@ -406,10 +411,41 @@ class Core {
 		}
 		// phpcs:ignore Squiz.PHP.CommentedOutCode.Found -- Documenting array structure, not commented code.
 		// $args: [0] requested cap, [1] user ID, [2] post_id.
-		if ( isset( $args[0], $args[2] ) && 'read_post' === $args[0] && (int) $args[2] === (int) $this->pds_ctx['post_id'] ) {
-			$allcaps['read_post'] = true;
+		if ( ! isset( $args[0], $args[2] ) || (int) $args[2] !== (int) $this->pds_ctx['post_id'] ) {
+			return $allcaps;
+		}
+		if ( ! $this->is_read_cap_for_shared_post( (string) $args[0] ) ) {
+			return $allcaps;
+		}
+		foreach ( (array) $caps as $mapped_cap ) {
+			// Never satisfy a hard denial.
+			if ( 'do_not_allow' === $mapped_cap ) {
+				continue;
+			}
+			$allcaps[ $mapped_cap ] = true;
 		}
 		return $allcaps;
+	}
+
+	/**
+	 * Whether the requested cap is a read meta cap for the shared post.
+	 *
+	 * Covers 'read_post', 'read_page', and custom post types whose
+	 * read_post equivalent is renamed (e.g. 'read_book').
+	 *
+	 * @param string $cap Requested capability.
+	 * @return bool True if this is a read check for the shared post.
+	 */
+	private function is_read_cap_for_shared_post( string $cap ): bool {
+		if ( in_array( $cap, array( 'read_post', 'read_page' ), true ) ) {
+			return true;
+		}
+		$post = get_post( (int) $this->pds_ctx['post_id'] );
+		if ( ! $post ) {
+			return false;
+		}
+		$post_type = get_post_type_object( $post->post_type );
+		return $post_type && isset( $post_type->cap->read_post ) && $post_type->cap->read_post === $cap;
 	}
 
 	/**
