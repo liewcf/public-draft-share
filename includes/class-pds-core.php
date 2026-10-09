@@ -305,6 +305,13 @@ class Core {
 			return;
 		}
 
+		// Trashed posts, auto-drafts, and revisions/attachments keep their meta
+		// but must never be reachable through a share link.
+		if ( in_array( $post->post_status, array( 'trash', 'auto-draft', 'inherit' ), true ) ) {
+			$this->pds_error = 'invalid';
+			return;
+		}
+
 		// Check if post type is public.
 		$pt = get_post_type_object( $post->post_type );
 		if ( ! $pt || empty( $pt->public ) ) {
