@@ -13,7 +13,17 @@
 - `includes/class-pds-admin.php` owns the editor meta box, localized jQuery admin script data, AJAX create/disable handlers, expiry options, capability checks, and admin UI rendering.
 - `assets/admin.js` updates the meta box with jQuery, calls `wp_ajax_pds_generate` / `wp_ajax_pds_disable`, and copies links using Clipboard API with `execCommand` fallback.
 - `uninstall.php` deletes `_pds_token`, `_pds_expires`, `_pds_versions`, and `pds_rewrite_version` across single-site or multisite installs.
-- `openspec/` is present for proposal-driven changes; feature, breaking, architecture, security, and performance-behavior changes should follow the OpenSpec gate before implementation.
+
+## Share Link Access Rules
+
+These are security rules. Changing them needs a dated entry in `docs/DECISIONS.md` first.
+
+- **Read access only.** On a request with a valid, unexpired share link, read checks for the shared post pass: `read_post`, `read_page`, and the post type's renamed read capability. `grant_read_cap()` grants the basic capabilities `map_meta_cap()` requires for that one check.
+  - It never grants `do_not_allow`.
+  - It never affects non-read checks: `edit_post` stays false for an anonymous viewer.
+  - It never affects checks for any other post.
+- **Unreachable post states.** A link is invalid (normal 404 invalid/expired page, no content shown) when the post status is `trash`, `auto-draft`, or `inherit`, even if the token matches. Other statuses, including custom editorial statuses, behave as before. Restoring a trashed post makes its link work again.
+- History: originally written as an OpenSpec spec (`share-link-access`, 2026-10-09). The full proposal, design notes, and scenarios are in git history at commit `ef29236` under `openspec/`.
 
 ## Development Workflow
 
@@ -22,7 +32,7 @@
 - Auto-fix command: `composer run fix` or `phpcbf --standard=phpcs.xml.dist .`
 - POT command: `wp i18n make-pot . languages/public-draft-share.pot`
 - Run locally: copy the repo folder to `wp-content/plugins/public-draft-share/`, then activate in WP Admin or with `wp plugin activate public-draft-share`.
-- Package command: `git archive --format=zip --prefix=public-draft-share/ -o public-draft-share-1.0.2.zip v1.0.2` (run against the release tag; `.gitattributes` `export-ignore` keeps dev files, `docs/`, and `openspec/` out; the prefix gives WordPress the correct plugin folder).
+- Package command: `git archive --format=zip --prefix=public-draft-share/ -o public-draft-share-1.0.2.zip v1.0.2` (run against the release tag; `.gitattributes` `export-ignore` keeps dev files and `docs/` out; the prefix gives WordPress the correct plugin folder).
 - Automated test suite: none currently; rely on linting plus manual WordPress QA.
 - Compatibility check: on 2026-05-26, version 1.0.1 passed a disposable Docker smoke test on WordPress 7.0 with PHP 8.3 and MySQL 8.4. On 2026-10-09, the 1.0.2 code passed Docker QA on WordPress 7.1.3 with PHP 8.3 and MySQL 8.4 (19 regression + 20 follow-up checks).
 
@@ -48,6 +58,7 @@
 - Do not log or publicly paste share tokens/share URLs; links are sensitive even though `noindex` headers/meta are emitted.
 - Preserve active-theme rendering for valid public draft views; the plugin controls access, headers, and error rendering.
 - Keep changes surgical and WordPress-compatible; do not introduce a build pipeline unless required.
+- Security or behavior changes need a dated entry in `docs/DECISIONS.md` (what changes and why) before they are merged. Plain bug fixes that restore intended behavior, and small docs/config updates, don't.
 - Release version bumps must update the plugin header `Version:`, `PDS_VERSION`, and `readme.txt` Stable tag together, preferably in a separate commit.
 - If caches are sticky, the documented opt-in is `add_filter( 'pds_aggressive_cache_flush', '__return_true' );`.
 - Root `AGENTS.md` is the short instruction file; durable repo memory lives in `docs/PROJECT_CONTEXT.md`, `docs/DECISIONS.md`, `docs/TASKS.md`, and `docs/CHANGELOG_WORK.md`.
