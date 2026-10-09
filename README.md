@@ -198,15 +198,10 @@ wp i18n make-pot . languages/public-draft-share.pot
   - Place the folder in `wp-content/plugins/public-draft-share/`.
   - Activate via WP Admin or `wp plugin activate public-draft-share`.
 
-- Package ZIP (adjust version as needed)
+- Package ZIP from a release tag (adjust version as needed). `.gitattributes` `export-ignore` rules keep dev files out, and the `public-draft-share/` prefix makes WordPress install it into the right plugin folder.
 
 ```bash
-zip -r public-draft-share-1.0.2.zip . \
-  -x "*.git*" "*.zip" ".DS_Store" \
-     "vendor/" "vendor/**" ".github/" ".github/**" "wp-cli.phar" \
-     "AGENTS.md" "docs/" "docs/**" "openspec/" "openspec/**" \
-     "output/" "output/**" "tmp/" "tmp/**" \
-     "assets/banner-*.png" "assets/icon-*.png"
+git archive --format=zip --prefix=public-draft-share/ -o public-draft-share-1.0.2.zip v1.0.2
 ```
 
 ### Coding Style & Conventions

@@ -2,6 +2,8 @@
 
 ## 2026-10-09
 
+- Release ZIPs are built with `git archive --prefix=public-draft-share/` from the release tag. Rationale: the 1.0.1 ZIP had no top-level folder, so WordPress uploads unpacked it into `public-draft-share-1.0.1/` (a second copy, not an update), and it shipped dev files (`AGENTS.md`, `composer.*`, `phpcs.xml.dist`). `.gitattributes` `export-ignore` is now the single exclusion list (adds `README.md`, `docs/`, `openspec/`).
+
 - Cache purges target every `?v=` variant a visitor may hold, not just the current one: `pre_post_update` records the pre-save version in `_pds_versions` (capped at 20, cleared on disable/regenerate). Rationale: `?v=` is the GMT modified time, which changes on every save and before `transition_post_status`, so purging only the current version missed the first-publish auto-disable path.
 - `scheduled_purge_url()` always purges the URL stored with the cron event and adds the `?v=` variants only when that URL still matches the current token, so a missed unschedule never drops the stale URL.
 - Share links reject posts in `trash`, `auto-draft`, or `inherit` status (denylist, so custom editorial statuses keep working). Treated as a direct bug fix.
