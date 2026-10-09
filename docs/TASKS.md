@@ -2,7 +2,7 @@
 
 ## Current Follow-Ups
 
-- [ ] Recommended next action: push local `main` commit `f2e35c4` if the WordPress 7.0 readme/memory update should be published to `origin`.
+- [ ] Test `fix/audit-findings` (worktree `../public-draft-share-fixes`) on a disposable WP 7.1.x site: read-cap grant, route-base flush loop, versioned purge URLs; then decide merge to `main` (OpenSpec proposal may be needed for the cap-grant security change).
 - [ ] Optional cache integrations: consider Cloudflare and host-specific purge hooks behind explicit filters.
 - [ ] Optional release validation: verify non-canonical plain-permalink `pds_token` values return the invalid/expired page on a real WordPress site, then check disable/expiry/publish revocation through the configured cache layer if caching is release-critical.
 - [ ] CI/static-analysis improvements: consider PHPStan with a baseline, Composer cache in CI, and ESLint for `assets/admin.js`.

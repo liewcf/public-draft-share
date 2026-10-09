@@ -1,5 +1,15 @@
 # Work Changelog
 
+## 2026-10-09 (experimental branch `fix/audit-findings`, worktree `../public-draft-share-fixes`)
+
+- Audit of v1.0.1 (WP compatibility, security, bugs) found three correctness issues; fixes prototyped on this branch without touching `main`:
+  - `54ab36b fix(core)`: `grant_read_cap()` now grants the mapped primitive caps from `map_meta_cap()` (e.g. `edit_others_posts` for drafts, `read_private_posts` for private posts) instead of the ineffective `read_post` key; also covers `read_page` and renamed CPT read caps, and never satisfies `do_not_allow`.
+  - `e6d31ba fix(routing)`: rewrite self-heal in `maybe_upgrade_rewrites()` derives the rule prefix from the filtered `pds_route_base` and only runs with pretty permalinks; previously a custom route base or plain permalinks triggered `flush_rewrite_rules()` on every `admin_init`.
+  - `ad0968a fix(cache)`: disable/regenerate/expiry purges now target the versioned `?v=` URL visitors actually use via a new `build_versioned_share_url()` helper; `purge_url_cache()` still strips query args to cover the raw variant.
+- Verification so far: `php -l` clean; PHPCS (WPCS-Core+Extra, minus the sniff that hangs on PHP 8.5) reports only the two rules intentionally relaxed in `phpcs.xml.dist`.
+- Pending before merging to `main`: manual QA on a disposable WordPress 7.1.x site (link create/disable, logged-out draft view, cap checks, custom route base, purge URLs); per `docs/DECISIONS.md` the `grant_read_cap` change touches security behavior and may warrant a short OpenSpec proposal.
+- Remaining audit findings not yet addressed: bump `Tested up to` to 7.1 after re-test, placeholder Plugin URI, `readme.txt` Contributors slug, stale POT line refs, lint tooling incompatible with PHP 8.5.
+
 ## 2026-05-26
 
 - Fixed the Codex Security P2 token-canonicalization finding by rejecting non-canonical raw `pds_token` values before token comparison instead of stripping invalid characters.
