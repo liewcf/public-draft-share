@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Public Draft Share
- * Plugin URI: https://example.com/public-draft-share
+ * Plugin URI: https://github.com/liewcf/public-draft-share
  * Description: Create secure, shareable links to view draft posts and pages without logging in.
  * Version: 1.0.1
  * Requires at least: 5.8

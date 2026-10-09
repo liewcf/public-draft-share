@@ -1,5 +1,5 @@
 === Public Draft Share ===
-Contributors: Liew Cheon Fong
+Contributors: liewcf
 Tags: preview, share, draft, link, private, token
 Requires at least: 5.8
 Tested up to: 7.1
