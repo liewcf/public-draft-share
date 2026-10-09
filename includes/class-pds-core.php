@@ -167,8 +167,7 @@ class Core {
 	 */
 	private function build_share_url_raw( int $post_id, string $token ): string {
 		if ( $this->has_pretty_permalinks() ) {
-			$route_base = $this->get_route_base();
-			return home_url( '/' . trim( $route_base, '/' ) . '/' . $post_id . '/' . rawurlencode( $token ) );
+			return home_url( '/' . $this->get_route_base() . '/' . $post_id . '/' . rawurlencode( $token ) );
 		}
 		// Fallback to query string for plain permalink structure.
 		return add_query_arg(
@@ -193,10 +192,14 @@ class Core {
 	/**
 	 * Get the route base for share URLs (default: 'pds').
 	 *
+	 * Slashes are trimmed so the rewrite rule, the self-heal check, and the
+	 * generated URLs all agree on the same value.
+	 *
 	 * @return string Route base.
 	 */
 	private function get_route_base(): string {
-		return apply_filters( 'pds_route_base', 'pds' );
+		$route_base = trim( (string) apply_filters( 'pds_route_base', 'pds' ), '/' );
+		return '' === $route_base ? 'pds' : $route_base;
 	}
 
 	/**
