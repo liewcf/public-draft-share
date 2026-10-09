@@ -1,5 +1,14 @@
 # Work Changelog
 
+## 2026-10-09 (branch `chore/maintenance`)
+
+- `composer.lock`: `composer update --with-all-dependencies` fixes the 3 high Dependabot alerts (all dev-only lint tooling): `squizlabs/php_codesniffer` 3.13.6, `wp-coding-standards/wpcs` 3.4.1, `phpcsstandards/phpcsutils` 1.2.3. `composer audit` clean.
+- `phpcs.xml.dist`: added `uninstall.php`, excluded `/vendor/*`, limited to `.php`. With updated tooling PHPCS runs on PHP 8.5 without hanging. The old crash came from passing `.` (as `composer lint` and the `AGENTS.md` command do), which scanned `vendor/` test fixtures; `admin.js` was also being sniffed against PHP rules.
+- `assets/index.php`: docblock file comment so it passes WPCS.
+- `public-draft-share.php`: Plugin URI now `https://github.com/liewcf/public-draft-share`. `readme.txt`: `Contributors: liewcf`.
+- `languages/public-draft-share.pot`: regenerated with WP-CLI in the Docker QA container (`--exclude=vendor,docs,openspec`); adds missing `day`/`days` strings, refreshes line refs and Plugin URI.
+- Verification: `composer lint` and `vendor/bin/phpcs --standard=phpcs.xml.dist` report 0 errors/warnings.
+
 ## 2026-10-09 (experimental branch `fix/audit-findings`, worktree `../public-draft-share-fixes`)
 
 - Audit of v1.0.1 (WP compatibility, security, bugs) found three correctness issues; fixes prototyped on this branch without touching `main`:
