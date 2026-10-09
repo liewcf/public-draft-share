@@ -776,11 +776,15 @@ class Core {
 		$need_flush = ( $current !== $target );
 
 		// Self-heal: if custom PDS rule is missing from rewrite array, flush once.
+		// Only applies when pretty permalinks are enabled, and the rule prefix
+		// must honor a filtered route base; otherwise sites using pds_route_base
+		// (or plain permalinks) would re-flush on every admin request.
 		$rules = get_option( 'rewrite_rules' );
-		if ( is_array( $rules ) ) {
-			$has_pds = false;
+		if ( $this->has_pretty_permalinks() && is_array( $rules ) ) {
+			$rule_prefix = '^' . preg_quote( $this->get_route_base(), '/' ) . '/';
+			$has_pds     = false;
 			foreach ( array_keys( $rules ) as $rule ) {
-				if ( 0 === strpos( (string) $rule, '^pds/' ) ) {
+				if ( 0 === strpos( (string) $rule, $rule_prefix ) ) {
 					$has_pds = true;
 					break;
 				}
